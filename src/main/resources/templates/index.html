@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SOSS | Supermarket Online Shopping System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+          crossorigin="anonymous">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<nav class="navbar navbar-dark bg-success" aria-label="Main navigation">
+    <div class="container">
+        <a class="navbar-brand brand" th:href="@{/}" aria-current="page">
+            <strong>SOSS</strong>
+            <span class="brand-description">Supermarket Online Shopping System</span>
+        </a>
+    </div>
+</nav>
+<main class="container py-5">
+    <section class="welcome-panel p-4 p-md-5" aria-labelledby="welcome-heading">
+        <p class="text-success fw-semibold mb-2">University group project</p>
+        <h1 id="welcome-heading" class="display-5 fw-bold">Welcome to SOSS</h1>
+        <p class="lead mb-0">Supermarket Online Shopping System</p>
+        <hr class="my-4">
+        <p class="text-secondary mb-0">The shared project foundation is ready. Shopping features will be added as the project develops.</p>
+    </section>
+</main>
+<footer class="container pb-4 text-secondary">
+    <small>SOSS &middot; Supermarket Online Shopping System</small>
+</footer>
+</body>
+</html>
+

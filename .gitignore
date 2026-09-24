@@ -1,0 +1,54 @@
+# Maven and compiled output
+target/
+build/
+dist/
+*.class
+*.jar
+*.war
+*.ear
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE metadata (shared nbactions.xml is deliberately tracked)
+nbproject/
+nb-configuration.xml
+nbactions-*.xml
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+application-local.yaml
+application-secrets.*
+settings.xml
+secrets/
+credentials/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.sql
+*.dump
+
+# Logs, temporary files and OS metadata
+*.log
+logs/
+*.tmp
+*.swp
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+

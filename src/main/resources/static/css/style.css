@@ -1,0 +1,30 @@
+:root {
+    color-scheme: light;
+}
+
+body {
+    margin: 0;
+    background-color: #f4f7f5;
+    color: #20352a;
+    font-family: system-ui, sans-serif;
+}
+
+.brand {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+    white-space: normal;
+}
+
+.brand-description {
+    font-size: 0.9rem;
+}
+
+.welcome-panel {
+    max-width: 56rem;
+    background-color: #fff;
+    border: 1px solid #dbe5de;
+    border-radius: 1rem;
+}
+
