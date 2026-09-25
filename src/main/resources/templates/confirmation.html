@@ -16,7 +16,7 @@
   <body data-page="confirmation">
     <header class="site-header">
       <div class="header-inner">
-        <a class="brand" href="index.html"
+        <a class="brand" href="index.html" th:href="@{/}"
           ><span class="brand-mark">B</span
           ><span
             ><strong>Bula Basket</strong
@@ -31,11 +31,11 @@
           ☰
         </button>
         <nav class="nav" aria-label="Primary navigation">
-          <a href="index.html" data-page="home">Home</a
+          <a href="index.html" th:href="@{/}" data-page="home">Home</a
           ><a href="search.html" data-page="search">Search</a
           ><a href="cart.html" data-page="cart">Cart</a
-          ><a href="confirmation.html" data-page="confirmation">Confirmation</a
-          ><a href="orders.html" data-page="orders">My orders</a>
+          ><a href="confirmation.html" th:href="@{/orders/{orderId}/confirmation(orderId=${order.id})}" data-page="confirmation">Confirmation</a
+          ><a href="orders.html" th:href="@{/orders/customer/{customerId}/view(customerId=${order.customerId})}" data-page="orders">My orders</a>
         </nav>
         <a class="cart-pill" href="cart.html"
           ><span>🧺</span> Cart <b id="cart-count">3</b></a
@@ -47,7 +47,8 @@
         <div class="success">✓</div>
         <h1>Order placed — vinaka!</h1>
         <p class="confirmation-sub">
-          Order #BB-2026-0481 · Confirmation sent to your email
+          <span th:text="|Order #${order.id}|"></span> &middot;
+          <span th:text="${order.orderDate != null ? #temporals.format(order.orderDate, 'dd MMM yyyy, h:mm a') : 'Date not available'}"></span>
         </p>
         <div class="progress">
           <div class="progress-step active">
@@ -68,38 +69,39 @@
           </div>
         </div>
         <div class="panel" style="text-align: left">
-          <h2>Delivery details</h2>
+          <h2>Order details</h2>
           <div class="detail-line">
-            <span>Slot</span><span>Today, 12pm – 2pm</span>
+            <span>Order ID</span><span th:text="|#${order.id}|"></span>
           </div>
           <div class="detail-line">
-            <span>Address</span><span>Vuci Road, Nausori</span>
+            <span>Order status</span><span th:text="${order.status}"></span>
           </div>
           <div class="detail-line">
-            <span>Payment</span><span>M-PAiSA</span>
+            <span>Payment status</span>
+            <span th:text="${payment != null and payment.status != null ? payment.status : 'No payment recorded'}"></span>
           </div>
         </div>
         <div class="panel order-items" style="margin-top: 16px">
-          <h2>Items ordered (3)</h2>
-          <div class="mini-items">
-            <span>🥤</span><span>🍫</span><span>🍨</span>
+          <h2>Payment details</h2>
+          <div class="detail-line">
+            <span>Transaction reference</span>
+            <span th:text="${payment != null and !#strings.isEmpty(payment.transactionReference) ? payment.transactionReference : 'Not available'}"></span>
           </div>
           <div class="detail-line">
-            <span>Coke 2.25L × 2</span><span>$6.95</span>
+            <span>Payment date</span>
+            <span th:text="${payment != null and payment.paymentDate != null ? #temporals.format(payment.paymentDate, 'dd MMM yyyy, h:mm a') : 'Not available'}"></span>
           </div>
-          <div class="detail-line">
-            <span>Cadbury Dairy Milk 50g × 1</span><span>$3.50</span>
-          </div>
-          <div class="detail-line">
-            <span>Tuckers Choc Ice Cream 2kg × 1</span><span>$10.00</span>
+          <div class="detail-line" th:if="${payment != null and !#strings.isEmpty(payment.failureReason)}">
+            <span>Failure reason</span><span th:text="${payment.failureReason}"></span>
           </div>
           <div class="detail-line paid">
-            <span>Total paid</span><strong>$27.40</strong>
+            <span>Total amount</span>
+            <strong th:text="${order.totalAmount != null ? '$' + #numbers.formatDecimal(order.totalAmount, 1, 'COMMA', 2, 'POINT') : 'Not available'}"></strong>
           </div>
         </div>
         <div class="actions">
-          <a class="btn btn-outline" href="index.html">Back to home</a
-          ><a class="btn" href="orders.html">View my orders</a>
+          <a class="btn btn-outline" href="index.html" th:href="@{/}">Back to home</a
+          ><a class="btn" href="orders.html" th:href="@{/orders/customer/{customerId}/view(customerId=${order.customerId})}">View my orders</a>
         </div>
       </section>
     </main>

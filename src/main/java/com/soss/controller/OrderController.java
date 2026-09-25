@@ -3,7 +3,9 @@ package com.soss.controller;
 import com.soss.model.Order;
 import com.soss.model.OrderItem;
 import com.soss.model.OrderStatus;
+import com.soss.model.Payment;
 import com.soss.service.OrderService;
+import com.soss.service.PaymentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotEmpty;
@@ -12,6 +14,7 @@ import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -32,9 +35,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class OrderController {
 
     private final OrderService orderService;
+    private final PaymentService paymentService;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, PaymentService paymentService) {
         this.orderService = orderService;
+        this.paymentService = paymentService;
     }
 
     @ResponseBody
@@ -81,6 +86,20 @@ public class OrderController {
         model.addAttribute("orders", orderService.getOrdersByCustomerId(customerId));
         model.addAttribute("customerId", customerId);
         return "orders";
+    }
+
+    @GetMapping("/{orderId}/confirmation")
+    public String viewOrderConfirmation(@PathVariable Long orderId, Model model) {
+        Order order = orderService.getOrderById(orderId);
+        Payment latestPayment = paymentService.getPaymentsByOrderId(orderId).stream()
+                .max(Comparator.comparing(Payment::getPaymentDate,
+                        Comparator.nullsFirst(Comparator.naturalOrder()))
+                        .thenComparing(Payment::getId,
+                                Comparator.nullsFirst(Comparator.naturalOrder())))
+                .orElse(null);
+        model.addAttribute("order", order);
+        model.addAttribute("payment", latestPayment);
+        return "confirmation";
     }
 
     private OrderResponse toResponse(Order order) {
