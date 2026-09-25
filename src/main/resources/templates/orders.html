@@ -35,7 +35,7 @@
           ><a href="search.html" data-page="search">Search</a
           ><a href="cart.html" data-page="cart">Cart</a
           ><a href="confirmation.html" data-page="confirmation">Confirmation</a
-          ><a href="orders.html" data-page="orders">My orders</a>
+          ><a href="orders.html" th:href="@{/orders/customer/{customerId}/view(customerId=${customerId})}" data-page="orders">My orders</a>
         </nav>
         <a class="cart-pill" href="cart.html"
           ><span>🧺</span> Cart <b id="cart-count">3</b></a
@@ -45,38 +45,23 @@
     <main>
       <section class="shell">
         <h1 class="section-title">My orders</h1>
-        <article class="order-card">
+        <p class="meta" th:if="${#lists.isEmpty(orders)}">No orders found</p>
+        <article class="order-card" th:each="order : ${orders}">
           <div>
-            <div class="order-id">#BB-2026-0481</div>
-            <span class="meta"
-              >24 May 2026 · Today, 2pm–4pm · 3 items · $25.67</span
-            >
+            <div class="order-id" th:text="|#${order.id}|"></div>
+            <span class="meta">
+              <span th:text="${#temporals.format(order.orderDate, 'dd MMM yyyy, h:mm a')}"></span>
+              &middot;
+              <span th:text="|$${#numbers.formatDecimal(order.totalAmount, 1, 'COMMA', 2, 'POINT')}|"></span>
+            </span>
           </div>
           <div class="order-actions">
-            <span class="status delivery">Out for delivery</span
+            <span
+              class="status"
+              th:classappend="${order.status.name() == 'PAID' or order.status.name() == 'COMPLETED' ? 'delivered' : (order.status.name() == 'PAYMENT_FAILED' ? 'cancelled' : 'delivery')}"
+              th:text="${order.status}"
+            ></span
             ><button class="btn" data-order-action>Track order</button
-            ><button class="btn btn-outline" data-order-action>Details</button>
-          </div>
-        </article>
-        <article class="order-card">
-          <div>
-            <div class="order-id">#BB-2026-0452</div>
-            <span class="meta">18 May 2026 · 2 items · $14.30</span>
-          </div>
-          <div class="order-actions">
-            <span class="status delivered">Delivered</span
-            ><button class="btn btn-outline" data-order-action>Reorder</button
-            ><button class="btn btn-outline" data-order-action>Details</button>
-          </div>
-        </article>
-        <article class="order-card">
-          <div>
-            <div class="order-id">#BB-2026-0410</div>
-            <span class="meta">10 May 2026 · 4 items · $38.90</span>
-          </div>
-          <div class="order-actions">
-            <span class="status cancelled">Cancelled</span
-            ><button class="btn btn-outline" data-order-action>Reorder</button
             ><button class="btn btn-outline" data-order-action>Details</button>
           </div>
         </article>

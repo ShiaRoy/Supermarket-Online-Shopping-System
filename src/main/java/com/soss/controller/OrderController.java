@@ -17,6 +17,7 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,7 +28,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Controller
-@ResponseBody
 @RequestMapping("/orders")
 public class OrderController {
 
@@ -37,11 +37,13 @@ public class OrderController {
         this.orderService = orderService;
     }
 
+    @ResponseBody
     @GetMapping("/{orderId}")
     public OrderResponse getOrder(@PathVariable Long orderId) {
         return toResponse(orderService.getOrderById(orderId));
     }
 
+    @ResponseBody
     @GetMapping("/customer/{customerId}")
     public List<OrderResponse> getCustomerOrders(@PathVariable Long customerId) {
         return orderService.getOrdersByCustomerId(customerId).stream()
@@ -49,6 +51,7 @@ public class OrderController {
                 .toList();
     }
 
+    @ResponseBody
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         Order order = new Order();
@@ -66,10 +69,18 @@ public class OrderController {
                 .body(toResponse(savedOrder));
     }
 
+    @ResponseBody
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleInvalidOrder(IllegalArgumentException exception) {
         return Map.of("error", exception.getMessage());
+    }
+
+    @GetMapping("/customer/{customerId}/view")
+    public String viewCustomerOrders(@PathVariable Long customerId, Model model) {
+        model.addAttribute("orders", orderService.getOrdersByCustomerId(customerId));
+        model.addAttribute("customerId", customerId);
+        return "orders";
     }
 
     private OrderResponse toResponse(Order order) {
