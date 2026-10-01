@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{products/fragments :: head(${item.product.name})}"></head>
+<body>
+<header th:replace="~{products/fragments :: header}"></header>
+<main class="shell">
+  <a class="text-link" th:href="@{/products(storeId=${store.id})}">&larr; Products</a>
+  <div class="product-detail">
+    <div class="product-visual detail-visual"><span th:replace="~{products/fragments :: icon(${item.product.icon})}"></span></div>
+    <div><h1 class="section-title" th:text="${item.product.name}"></h1><p class="category" th:text="${item.product.category}"></p>
+    <p class="price" th:text="|FJ$ ${#numbers.formatDecimal(item.product.price,1,2)}|"></p>
+    <p class="description" th:text="${item.product.description}"></p>
+    <p><span class="status" th:classappend="${item.statusClass}" th:text="${item.status}"></span></p>
+    <p th:text="|${item.quantity} available at ${store.name}|"></p></div>
+  </div>
+</main>
+<footer th:replace="~{products/fragments :: footer}"></footer>
+</body></html>

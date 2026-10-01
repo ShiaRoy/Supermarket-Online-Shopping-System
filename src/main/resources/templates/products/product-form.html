@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{products/fragments :: head('Manage product')}"></head>
+<body>
+<header th:replace="~{products/fragments :: header}"></header>
+<main class="shell form-shell">
+  <h1 class="section-title" th:text="${productId == null} ? 'Add product' : 'Edit product'"></h1>
+  <p class="meta" th:text="|Stock at ${store.name}|"></p>
+  <form method="post" th:action="${productId == null} ? @{/inventory} : @{/inventory/{id}(id=${productId})}" th:object="${productForm}">
+    <div class="alert alert-danger" role="alert" th:if="${#fields.hasAnyErrors()}"><ul><li th:each="err : ${#fields.allErrors()}" th:text="${err}"></li></ul></div>
+    <input type="hidden" th:field="*{storeId}"><input type="hidden" th:field="*{productVersion}"><input type="hidden" th:field="*{inventoryVersion}">
+    <div class="form-grid two-col">
+      <div class="form-group"><label for="name">Product name</label><input id="name" th:field="*{name}" required maxlength="120"></div>
+      <div class="form-group"><label for="category">Aisle</label><input id="category" th:field="*{category}" required maxlength="80"></div>
+      <div class="form-group full"><label for="description">Description</label><textarea id="description" th:field="*{description}" required maxlength="2000" rows="4"></textarea></div>
+      <div class="form-group"><label for="price">Price (FJ$)</label><input id="price" th:field="*{price}" type="number" min="0.01" max="99999999.99" step="0.01" required></div>
+      <div class="form-group"><label for="quantity">Stock quantity</label><input id="quantity" th:field="*{quantity}" type="number" min="0" max="1000000" step="1" required></div>
+      <div class="form-group"><label for="icon">Product icon</label><select id="icon" th:field="*{icon}"><option value="basket">Basket</option><option value="milk">Milk</option><option value="bread">Bread</option><option value="chicken">Chicken</option><option value="juice">Juice</option><option value="drink">Drink</option></select></div>
+      <label class="check-line"><input type="checkbox" th:field="*{active}">Visible in catalogue</label>
+    </div>
+    <div class="form-actions"><button type="submit" class="btn">Save product</button><a class="btn btn-outline" th:href="@{/inventory(storeId=${store.id})}">Cancel</a></div>
+  </form>
+</main>
+<footer th:replace="~{products/fragments :: footer}"></footer>
+</body></html>
