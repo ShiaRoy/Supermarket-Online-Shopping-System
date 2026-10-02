@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{products/fragments :: head('Inventory')}"></head>
+<body>
+<header th:replace="~{products/fragments :: header}"></header>
+<main class="shell">
+  <div class="inventory-page-head"><div><h1 class="section-title">Inventory management</h1><p class="meta">Products, stock levels and availability.</p></div><a class="btn" th:if="${store != null}" th:href="@{/inventory/new(storeId=${store.id})}">+ Add product</a></div>
+  <p class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></p>
+  <p class="alert alert-danger" role="alert" th:if="${error}" th:text="${error}"></p>
+  <form class="inventory-toolbar" method="get" th:action="@{/inventory}" th:if="${store != null}">
+    <input type="search" name="q" th:value="${q}" placeholder="Search products" aria-label="Search products">
+    <select class="form-select" name="storeId" aria-label="Store"><option th:each="branch : ${stores}" th:value="${branch.id}" th:text="${branch.name}" th:selected="${branch.id == store.id}"></option></select>
+    <select class="form-select" name="category" aria-label="Aisle"><option value="">All aisles</option><option th:each="aisle : ${categories}" th:value="${aisle}" th:text="${aisle}" th:selected="${aisle == category}"></option></select>
+    <select class="form-select" name="availability" aria-label="Stock level"><option value="">All stock levels</option><option value="low" th:selected="${availability == 'low'}">Low stock</option><option value="out" th:selected="${availability == 'out'}">Out of stock</option></select>
+    <button class="btn" type="submit">Filter</button>
+  </form>
+  <div class="table-responsive" th:unless="${#lists.isEmpty(items)}">
+    <table class="table inventory-table-real"><thead><tr><th>Product</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+      <tr th:each="item : ${items}">
+        <td><div class="inventory-product"><span class="inventory-icon"><span th:replace="~{products/fragments :: icon(${item.product.icon})}"></span></span><div><strong th:text="${item.product.name}"></strong><div class="meta" th:text="${item.product.category}"></div><small th:unless="${item.product.active}">Hidden from catalogue</small></div></div></td>
+        <td th:text="|FJ$ ${#numbers.formatDecimal(item.product.price,1,2)}|"></td>
+        <td class="stock-number" th:text="${item.quantity}"></td>
+        <td><span class="status" th:classappend="${item.statusClass}" th:text="${item.status}"></span></td>
+        <td><a class="btn btn-outline btn-small" th:href="@{/inventory/{id}/edit(id=${item.product.id},storeId=${store.id})}" th:attr="aria-label=|Edit ${item.product.name}|">Edit</a></td>
+      </tr>
+    </tbody></table>
+  </div>
+  <p class="empty-state" th:if="${#lists.isEmpty(items)}" th:text="${#lists.isEmpty(stores)} ? 'No stores have been added.' : 'No products found.'"></p>
+  <details class="store-create"><summary>Add store</summary><form th:action="@{/inventory/stores}" method="post" class="inventory-toolbar"><input name="name" required maxlength="100" placeholder="Store name" aria-label="Store name"><button class="btn" type="submit">Add store</button></form></details>
+  <form class="logout-form" th:action="@{/inventory/logout}" method="post"><button type="submit" class="btn btn-outline">Sign out</button></form>
+</main>
+<footer th:replace="~{products/fragments :: footer}"></footer>
+</body></html>

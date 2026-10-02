@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{products/fragments :: head('Products')}"></head>
+<body data-page="home">
+<header th:replace="~{products/fragments :: header}"></header>
+<main class="shell">
+  <h1 class="section-title">Bula Basket</h1>
+  <div class="search-head"><h2 class="section-title">From the catalogue</h2><span class="meta" th:text="|${#lists.size(items)} items|"></span></div>
+  <p th:if="${#lists.isEmpty(stores)}" class="empty-state">The catalogue is not available yet.</p>
+  <div class="search-layout" th:unless="${#lists.isEmpty(stores)}">
+    <aside th:replace="~{products/fragments :: filters('/products')}"></aside>
+    <div th:replace="~{products/fragments :: cards}"></div>
+  </div>
+</main>
+<footer th:replace="~{products/fragments :: footer}"></footer>
+</body></html>

@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{products/fragments :: head('Search')}"></head>
+<body data-page="search">
+<header th:replace="~{products/fragments :: header}"></header>
+<main class="shell">
+  <div class="search-head"><h1 class="section-title" th:text="${#strings.isEmpty(q)} ? 'Search products' : 'Results for ' + ${q}">Search products</h1><span class="meta" th:text="|${#lists.size(items)} items|"></span></div>
+  <div class="search-layout"><aside th:replace="~{products/fragments :: filters('/search')}"></aside><div th:replace="~{products/fragments :: cards}"></div></div>
+</main>
+<footer th:replace="~{products/fragments :: footer}"></footer>
+</body></html>
