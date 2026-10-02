@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bula Basket | Track order</title>
+  <!-- Reloads every 30 seconds so customers see new status without refreshing; stops once delivered. -->
+  <meta http-equiv="refresh" content="30" th:unless="${delivery.status.name() == 'DELIVERED'}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" th:href="@{/css/styles.css}" />
+</head>
+<body>
+  <!-- TODO(integration): header and footer are copied from the interface design. Other modules' links
+       are "#" until their routes exist; ideally one person turns this header into a shared fragment. -->
+  <header class="site-header"><div class="header-inner">
+    <a class="brand" th:href="@{/}"><span class="brand-mark">B</span><span><strong>Bula Basket</strong><small>Fresh groceries around Suva</small></span></a>
+    <nav class="nav"><a th:href="@{/}">Home</a><a href="#">Search</a><a href="#">Cart</a><a href="#">My orders</a><a class="active" th:href="@{/delivery/track}">Track order</a></nav>
+    <a class="cart-pill" href="#"><span>🧺</span> Cart</a>
+  </div></header>
+  <main><section class="shell">
+    <div class="delivery-page-head"><div>
+      <span class="meta" th:text="'#' + ${delivery.orderId}">#1</span>
+      <h1 class="section-title">Track your grocery delivery</h1>
+      <span th:class="${delivery.status.name() == 'DELIVERED'} ? 'status delivered' : 'status delivery'" th:text="${delivery.status.label}">Out for delivery</span>
+    </div><a class="btn btn-outline" href="#">Back to my orders</a></div>
+    <div class="delivery-grid">
+      <article class="tracking-card">
+        <div class="tracking-top"><h2>Delivery progress</h2><span class="meta" th:text="'Updated ' + ${@deliveryDisplay.updatedAt(delivery)}">Updated just now</span></div>
+        <div class="track-list">
+          <div th:each="step : ${steps}" class="track-step"
+               th:classappend="${delivery.status.name() == 'DELIVERED' or step.ordinal() &lt; delivery.status.ordinal() ? 'done' : (step == delivery.status ? 'current' : '')}">
+            <div class="track-dot"
+                 th:text="${delivery.status.name() == 'DELIVERED' or step.ordinal() &lt; delivery.status.ordinal() ? '✓' : (step == delivery.status ? (step.name() == 'OUT_FOR_DELIVERY' ? '🚚' : '●') : '')}"></div>
+            <div class="track-copy">
+              <strong th:text="${step.label}">Confirmed</strong>
+              <small th:text="${step.name() == 'DELIVERED' and delivery.status.name() == 'DELIVERED' ? 'Your order has been delivered.' : step.description}">Your order has been confirmed.</small>
+            </div>
+          </div>
+        </div>
+        <div class="delivery-note"
+             th:text="${delivery.status.name() == 'DELIVERED' ? 'Your order has been delivered. Vinaka for shopping with Bula Basket!' : 'Your order is on the way. Delivery times may shift slightly because of traffic or weather.'}">
+          Your order is on the way. Delivery times may shift slightly because of traffic or weather.
+        </div>
+      </article>
+      <aside>
+        <section class="info-card"><h2>Delivery details</h2>
+          <div class="info-pair"><span>Expected</span><strong th:text="${@deliveryDisplay.expectedWindow(delivery)}">Today, 2pm – 4pm</strong></div>
+          <div class="info-pair"><span>Address</span><strong th:text="${delivery.deliveryAddress}">Vuci Road, Nausori</strong></div>
+          <div class="info-pair"><span>Driver</span><strong th:text="${delivery.assignedStaffId != null} ? 'Assigned delivery staff' : 'Not yet assigned'">Assigned delivery staff</strong></div>
+          <button type="button" class="btn btn-outline" style="width:100%;margin-top:8px">Contact delivery</button>
+        </section>
+        <!-- The interface's "Order summary" card (items, total, payment) is omitted: that data belongs to
+             the Orders and Payments modules and is not stored in Delivery. -->
+      </aside>
+    </div>
+  </section></main>
+  <footer>Bula Basket · Privacy policy · Contact us · © 2026, Suva, Fiji</footer>
+</body>
+</html>
