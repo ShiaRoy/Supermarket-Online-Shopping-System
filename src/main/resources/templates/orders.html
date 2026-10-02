@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description" content="View your Bula Basket orders." />
+    <title>Bula Basket | My Orders</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/styles.css" th:href="@{/css/styles.css}" />
+  </head>
+  <body data-page="orders">
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="index.html"
+          ><span class="brand-mark">B</span
+          ><span
+            ><strong>Bula Basket</strong
+            ><small>Fresh groceries around Suva</small></span
+          ></a
+        ><button
+          class="menu-toggle"
+          type="button"
+          aria-label="Open navigation"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <nav class="nav" aria-label="Primary navigation">
+          <a href="index.html" data-page="home">Home</a
+          ><a href="search.html" data-page="search">Search</a
+          ><a href="cart.html" data-page="cart">Cart</a
+          ><a href="confirmation.html" data-page="confirmation">Confirmation</a
+          ><a href="orders.html" th:href="@{/orders/customer/{customerId}/view(customerId=${customerId})}" data-page="orders">My orders</a>
+        </nav>
+        <a class="cart-pill" href="cart.html"
+          ><span>🧺</span> Cart <b id="cart-count">3</b></a
+        >
+      </div>
+    </header>
+    <main>
+      <section class="shell">
+        <h1 class="section-title">My orders</h1>
+        <p class="meta" th:if="${#lists.isEmpty(orders)}">No orders found</p>
+        <article class="order-card" th:each="order : ${orders}">
+          <div>
+            <div class="order-id" th:text="|#${order.id}|"></div>
+            <span class="meta">
+              <span th:text="${#temporals.format(order.orderDate, 'dd MMM yyyy, h:mm a')}"></span>
+              &middot;
+              <span th:text="|$${#numbers.formatDecimal(order.totalAmount, 1, 'COMMA', 2, 'POINT')}|"></span>
+            </span>
+          </div>
+          <div class="order-actions">
+            <span
+              class="status"
+              th:classappend="${order.status.name() == 'PAID' or order.status.name() == 'COMPLETED' ? 'delivered' : (order.status.name() == 'PAYMENT_FAILED' ? 'cancelled' : 'delivery')}"
+              th:text="${order.status}"
+            ></span
+            ><button class="btn" data-order-action>Track order</button
+            ><button class="btn btn-outline" data-order-action>Details</button>
+          </div>
+        </article>
+      </section>
+    </main>
+    <footer>
+      Bula Basket · Privacy policy · Contact us · © 2026, Suva, Fiji
+    </footer>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
