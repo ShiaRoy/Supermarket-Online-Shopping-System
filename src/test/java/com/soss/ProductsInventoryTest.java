@@ -82,7 +82,7 @@ class ProductsInventoryTest {
         mvc.perform(get("/inventory").with(user("staff").roles("STAFF"))).andExpect(status().isOk());
         mvc.perform(get("/inventory/" + milk + "/edit").param("storeId", suva.toString()).with(user("admin").roles("ADMIN")))
             .andExpect(status().isOk());
-        mvc.perform(get("/inventory/login")).andExpect(status().isOk());
+        mvc.perform(get("/login")).andExpect(status().isOk());
     }
     @Test void validPostPersistsAndNegativeStockIsRejected() throws Exception {
         mvc.perform(post("/inventory").with(user("staff").roles("STAFF")).with(csrf())

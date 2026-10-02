@@ -10,7 +10,7 @@ public class SecurityConfig {
  @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
  @Bean SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
   return http.authorizeHttpRequests(a->a
-   .requestMatchers("/","/login","/register","/css/**","/error").permitAll()
+   .requestMatchers("/", "/login", "/register", "/products", "/products/**", "/search", "/css/**", "/js/**", "/images/**", "/error").permitAll()
    .requestMatchers("/admin","/admin/**").hasRole("ADMIN")
    .requestMatchers("/staff","/staff/**","/inventory","/inventory/**").hasAnyRole("STAFF","ADMIN")
    .requestMatchers("/customer","/customer/**","/cart","/cart/**","/checkout","/checkout/**","/orders","/orders/**").hasRole("CUSTOMER")
