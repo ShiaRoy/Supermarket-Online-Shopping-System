@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bula Basket | Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" th:href="@{/css/auth.css}" />
+</head>
+<body>
+  <header class="site-header"><div class="header-inner"><a class="brand" th:href="@{/}"><span class="brand-mark">B</span><span><strong>Bula Basket</strong><small>Fresh groceries around Suva</small></span></a><nav class="nav" aria-label="Account navigation"><a th:href="@{/}">Home</a><a th:href="@{/login}">Login</a><a th:href="@{/register}">Register</a><a th:href="@{/profile}">Profile</a></nav></div></header>
+  <main class="auth-shell">
+    <section class="auth-card">
+      <h1>Welcome back</h1>
+      <p class="auth-subtitle">Log in to your Bula Basket account.</p>
+      <p class="validation" role="alert" th:if="${param.error}">Invalid email or password.</p><p role="status" th:if="${param.logout}">You have logged out.</p><p role="status" th:if="${param.registered}">Account created. Please log in.</p><form class="form-grid" method="post" th:action="@{/login}">
+        <div class="form-group"><label for="email">Email address</label><input id="email" name="email" type="email" required maxlength="254" autocomplete="username" placeholder="Enter your email" /></div>
+        <div class="form-group"><label for="password">Password</label><input id="password" type="password" name="password" required autocomplete="current-password" /></div>
+        
+        <button class="btn auth-submit" type="submit">Log in</button>
+      </form>
+      <hr class="auth-divider" />
+      <div class="auth-switch">New to Bula Basket? <a class="text-link" th:href="@{/register}">Create an account</a></div>
+    </section>
+  </main>
+  <footer>Bula Basket · Privacy policy · Contact us · © 2026, Suva, Fiji</footer>
+</body>
+</html>

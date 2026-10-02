@@ -1,4 +1,4 @@
 
-/** Spring Data repositories for persistence access from services. */
+/**The package contains repositories that services use to access database. */
 package com.soss.repository;
 
