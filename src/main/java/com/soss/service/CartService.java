@@ -3,6 +3,7 @@ package com.soss.service;
 import com.soss.model.Cart;
 import com.soss.model.CheckoutForm;
 import com.soss.repository.CartRepository;
+import com.soss.repository.UserRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,11 +14,12 @@ import java.util.*;
 @Service
 public class CartService {
     private final CartRepository carts;
+    private final UserRepository users;
     private final CheckoutProducts products;
     private final CheckoutOrders orders;
 
-    public CartService(CartRepository carts, CheckoutProducts products, CheckoutOrders orders) {
-        this.carts = carts; this.products = products; this.orders = orders;
+    public CartService(CartRepository carts, CheckoutProducts products, CheckoutOrders orders, UserRepository users) {
+        this.carts = carts; this.products = products; this.orders = orders; this.users = users;
     }
 
     public record Line(Long id, String name, String icon, int quantity, BigDecimal unitPrice, BigDecimal total) {}
@@ -26,17 +28,20 @@ public class CartService {
     // UI choices only; reconcile with the shared Payments module's enum at integration.
     public static final List<String> PAYMENTS = List.of("M-PAiSA", "MyCash", "Visa / Mastercard");
 
-    /** Call during account creation, or migrate existing accounts before enabling cart routes. */
+    /** Ensure an authenticated account has a cart; first visits also call this path. */
     @Transactional
     public void provision(String owner) {
-        if (owner == null || owner.isBlank() || owner.length() > 100)
-            throw new IllegalArgumentException("Invalid account identity.");
-        if (carts.findByOwner(owner).isEmpty()) carts.save(new Cart(owner));
+        locked(owner);
     }
 
     private Cart locked(String owner) {
-        return carts.lockByOwner(owner).orElseThrow(
-            () -> new IllegalArgumentException("Your basket is not provisioned. Contact support."));
+        if (owner == null || owner.isBlank() || owner.length() > 254) {
+            throw new IllegalArgumentException("Invalid account identity.");
+        }
+        // The user row exists even before the cart, so first visits can be serialized.
+        users.lockByEmail(owner).orElseThrow(
+                () -> new IllegalArgumentException("Customer account not found."));
+        return carts.lockByOwner(owner).orElseGet(() -> carts.saveAndFlush(new Cart(owner)));
     }
 
     public List<String> slots() {

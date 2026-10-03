@@ -59,8 +59,8 @@ public class CartController {
         String owner = owner(user);
         if (!errors.hasErrors()) {
             try {
-                // This destination is owned by the shared Orders module. Align its route during integration.
-                return "redirect:/confirmation/" + carts.place(owner, form).orderId();
+                // Use the existing Orders confirmation page.
+                return "redirect:/orders/" + carts.place(owner, form).orderId() + "/confirmation";
             } catch (IllegalArgumentException e) { model.addAttribute("error", e.getMessage()); }
         }
         model(owner, model);

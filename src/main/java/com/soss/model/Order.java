@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -18,7 +19,8 @@ import java.util.List;
 import java.util.Objects;
 
 @Entity
-@Table(name = "orders")
+@Table(name = "orders", uniqueConstraints = @UniqueConstraint(
+        name = "uk_orders_customer_checkout_token", columnNames = {"customer_id", "checkout_token"}))
 public class Order {
 
     @Id
@@ -26,6 +28,9 @@ public class Order {
     private Long id;
 
     private Long customerId;
+
+    @Column(name = "checkout_token", length = 36)
+    private String checkoutToken;
 
     private LocalDateTime orderDate;
 
@@ -79,6 +84,14 @@ public class Order {
 
     public void setCustomerId(Long customerId) {
         this.customerId = customerId;
+    }
+
+    public String getCheckoutToken() {
+        return checkoutToken;
+    }
+
+    public void setCheckoutToken(String checkoutToken) {
+        this.checkoutToken = checkoutToken;
     }
 
     public LocalDateTime getOrderDate() {
