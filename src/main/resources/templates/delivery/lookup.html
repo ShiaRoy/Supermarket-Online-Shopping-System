@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bula Basket | Track order</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" th:href="@{/css/styles.css}" />
+</head>
+<body>
+  <!-- Order lookup. Once login and "My orders" exist, customers will reach their own deliveries from there. -->
+  <header class="site-header"><div class="header-inner">
+    <a class="brand" th:href="@{/}"><span class="brand-mark">B</span><span><strong>Bula Basket</strong><small>Fresh groceries around Suva</small></span></a>
+    <nav class="nav"><a th:href="@{/}">Home</a><a href="#">Search</a><a href="#">Cart</a><a href="#">My orders</a><a class="active" th:href="@{/delivery/track}">Track order</a></nav>
+    <a class="cart-pill" href="#"><span>🧺</span> Cart</a>
+  </div></header>
+  <main><section class="shell">
+    <h1 class="section-title">Track your grocery delivery</h1>
+    <p class="meta">Enter your order number to see where your groceries are.</p>
+    <div class="delivery-note" th:if="${error}" th:text="${error}" style="margin:16px 0;background:#fde3df;color:#a73525">No delivery found</div>
+    <form th:action="@{/delivery/track}" method="get" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:16px">
+      <input type="number" name="orderId" min="1" required placeholder="Order number, e.g. 1"
+             style="padding:12px 14px;border:1px solid #d9d2c3;border-radius:12px;font:inherit;min-width:240px" />
+      <button type="submit" class="btn">Track order</button>
+    </form>
+  </section></main>
+  <footer>Bula Basket · Privacy policy · Contact us · © 2026, Suva, Fiji</footer>
+</body>
+</html>
