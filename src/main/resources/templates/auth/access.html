@@ -1,1 +1,87 @@
-<!doctype html><html lang="en" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bula Basket | Role access</title><link rel="stylesheet" th:href="@{/css/auth.css}"></head><body><header class="site-header"><div class="header-inner"><a class="brand" th:href="@{/}"><span class="brand-mark">B</span><span><strong>Bula Basket</strong><small>Fresh groceries around Suva</small></span></a><nav class="nav" aria-label="Account navigation"><a th:href="@{/}">Home</a><a th:href="@{/login}">Login</a><a th:href="@{/register}">Register</a><a th:href="@{/profile}">Profile</a></nav></div></header><main class="auth-shell"><section class="auth-card"><h1 th:text="${area + ' access'}"></h1><p>Your account has permission to access this area.</p><a th:href="@{/profile}">Back to profile</a></section></main></body></html>
+<!doctype html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <title>Bula Basket | Role access</title>
+
+  <link rel="stylesheet" th:href="@{/css/auth.css}" />
+</head>
+
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+
+    <a class="brand" th:href="@{/}">
+      <span class="brand-mark">B</span>
+
+      <span>
+        <strong>Bula Basket</strong>
+        <small>Fresh groceries around Suva</small>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Account navigation">
+
+      <a th:href="@{/}">Home</a>
+
+      <a sec:authorize="isAnonymous()"
+         th:href="@{/login}">
+        Login
+      </a>
+
+      <a sec:authorize="isAnonymous()"
+         th:href="@{/register}">
+        Register
+      </a>
+
+      <a sec:authorize="isAuthenticated()"
+         th:href="@{/profile}">
+        Profile
+      </a>
+
+      <form sec:authorize="isAuthenticated()"
+            method="post"
+            th:action="@{/logout}"
+            style="display:inline;">
+
+        <button type="submit"
+                class="link-button">
+          Log out
+        </button>
+
+      </form>
+
+    </nav>
+
+  </div>
+</header>
+
+
+<main class="auth-shell">
+
+  <section class="auth-card">
+
+    <h1 th:text="${area + ' access'}">
+      Role access
+    </h1>
+
+    <p>
+      Your account has permission to access this area.
+    </p>
+
+    <a th:href="@{/profile}">
+      Back to profile
+    </a>
+
+  </section>
+
+</main>
+
+</body>
+</html>

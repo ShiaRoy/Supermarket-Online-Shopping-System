@@ -1,33 +1,228 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+
   <title>Bula Basket | Register</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap"
+        rel="stylesheet" />
+
   <link rel="stylesheet" th:href="@{/css/auth.css}" />
 </head>
+
 <body>
-  <header class="site-header"><div class="header-inner"><a class="brand" th:href="@{/}"><span class="brand-mark">B</span><span><strong>Bula Basket</strong><small>Fresh groceries around Suva</small></span></a><nav class="nav" aria-label="Account navigation"><a th:href="@{/}">Home</a><a th:href="@{/login}">Login</a><a th:href="@{/register}">Register</a><a th:href="@{/profile}">Profile</a></nav></div></header>
-  <main class="auth-shell">
-    <section class="auth-card register-card">
-      <h1>Create your account</h1>
-      <p class="auth-subtitle">Join Bula Basket for easier grocery shopping.</p>
-      <form class="form-grid two-col" method="post" th:action="@{/register}" th:object="${registration}"><div class="validation" role="alert" th:if="${#fields.hasErrors('*')}"><p th:each="e : ${#fields.errors('*')}" th:text="${e}"></p></div>
-        <div class="form-group full"><label for="name">Full name</label><input id="name" th:field="*{fullName}" type="text" required maxlength="100" placeholder="Enter your full name" /></div>
-        <div class="form-group"><label for="reg-email">Email address</label><input id="reg-email" th:field="*{email}" type="email" required maxlength="254" placeholder="Enter your email" /></div>
-        <div class="form-group"><label for="phone">Phone number</label><div class="input-with-prefix"><span>+679</span><input id="phone" th:field="*{phone}" type="tel" required pattern="[0-9]{7}" maxlength="7" placeholder="Enter your phone number" /></div></div>
-        <div class="form-group"><label for="reg-password">Password</label><input id="reg-password" name="password" type="password" required minlength="8" maxlength="72" autocomplete="new-password" placeholder="Enter your password" /></div>
-        <div class="form-group"><label for="confirm-password">Confirm password</label><input id="confirm-password" name="confirmPassword" type="password" required autocomplete="new-password" placeholder="Confirm your password" /></div>
-        <p class="full">Use a password of at least eight characters.</p>
-        <button class="btn auth-submit full" type="submit">Create account</button>
+
+<header class="site-header">
+  <div class="header-inner">
+
+    <a class="brand" th:href="@{/}">
+      <span class="brand-mark">B</span>
+
+      <span>
+        <strong>Bula Basket</strong>
+        <small>Fresh groceries around Suva</small>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Account navigation">
+
+      <a th:href="@{/}">Home</a>
+
+      <!-- Logged out -->
+      <a sec:authorize="isAnonymous()"
+         th:href="@{/login}">
+        Login
+      </a>
+
+      <a sec:authorize="isAnonymous()"
+         th:href="@{/register}">
+        Register
+      </a>
+
+      <!-- Logged in -->
+      <a sec:authorize="isAuthenticated()"
+         th:href="@{/profile}">
+        Profile
+      </a>
+
+      <form sec:authorize="isAuthenticated()"
+            method="post"
+            th:action="@{/logout}"
+            style="display:inline;">
+
+        <button type="submit"
+                class="link-button">
+          Log out
+        </button>
+
       </form>
-      <hr class="auth-divider" />
-      <div class="auth-switch">Already have an account? <a class="text-link" th:href="@{/login}">Log in</a></div>
-    </section>
-  </main>
-  <footer>Bula Basket · Privacy policy · Contact us · © 2026, Suva, Fiji</footer>
+
+    </nav>
+
+  </div>
+</header>
+
+
+<main class="auth-shell">
+
+  <section class="auth-card register-card">
+
+    <h1>Create your account</h1>
+
+    <p class="auth-subtitle">
+      Join Bula Basket for easier grocery shopping.
+    </p>
+
+
+    <form class="form-grid two-col"
+          method="post"
+          th:action="@{/register}"
+          th:object="${registration}">
+
+      <div class="validation"
+           role="alert"
+           th:if="${#fields.hasErrors('*')}">
+
+        <p th:each="e : ${#fields.errors('*')}"
+           th:text="${e}">
+        </p>
+
+      </div>
+
+
+      <div class="form-group full">
+
+        <label for="name">
+          Full name
+        </label>
+
+        <input id="name"
+               th:field="*{fullName}"
+               type="text"
+               required
+               maxlength="100"
+               placeholder="Enter your full name" />
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="reg-email">
+          Email address
+        </label>
+
+        <input id="reg-email"
+               th:field="*{email}"
+               type="email"
+               required
+               maxlength="254"
+               placeholder="Enter your email" />
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="phone">
+          Phone number
+        </label>
+
+        <div class="input-with-prefix">
+
+          <span>+679</span>
+
+          <input id="phone"
+                 th:field="*{phone}"
+                 type="tel"
+                 required
+                 pattern="[0-9]{7}"
+                 maxlength="7"
+                 placeholder="Enter your phone number" />
+
+        </div>
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="reg-password">
+          Password
+        </label>
+
+        <input id="reg-password"
+               name="password"
+               type="password"
+               required
+               minlength="8"
+               maxlength="72"
+               autocomplete="new-password"
+               placeholder="Enter your password" />
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="confirm-password">
+          Confirm password
+        </label>
+
+        <input id="confirm-password"
+               name="confirmPassword"
+               type="password"
+               required
+               autocomplete="new-password"
+               placeholder="Confirm your password" />
+
+      </div>
+
+
+      <p class="full">
+        Use a password of at least eight characters.
+      </p>
+
+
+      <button class="btn auth-submit full"
+              type="submit">
+        Create account
+      </button>
+
+    </form>
+
+
+    <hr class="auth-divider" />
+
+
+    <div class="auth-switch"
+         sec:authorize="isAnonymous()">
+
+      Already have an account?
+
+      <a class="text-link"
+         th:href="@{/login}">
+        Log in
+      </a>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<footer>
+  Bula Basket · Privacy policy · Contact us · © 2026, Suva, Fiji
+</footer>
+
 </body>
 </html>

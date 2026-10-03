@@ -1,26 +1,236 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
   <title>Bula Basket | Profile</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap"
+        rel="stylesheet" />
+
   <link rel="stylesheet" th:href="@{/css/auth.css}" />
 </head>
+
 <body>
-  <header class="site-header"><div class="header-inner"><a class="brand" th:href="@{/}"><span class="brand-mark">B</span><span><strong>Bula Basket</strong><small>Fresh groceries around Suva</small></span></a><nav class="nav" aria-label="Account navigation"><a th:href="@{/}">Home</a><a th:href="@{/login}">Login</a><a th:href="@{/register}">Register</a><a th:href="@{/profile}">Profile</a></nav></div></header>
-  <main><section class="shell">
+
+<header class="site-header">
+  <div class="header-inner">
+
+    <a class="brand" th:href="@{/}">
+      <span class="brand-mark">B</span>
+
+      <span>
+        <strong>Bula Basket</strong>
+        <small>Fresh groceries around Suva</small>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Account navigation">
+
+      <a th:href="@{/}">Home</a>
+
+      <!-- Logged out -->
+      <a sec:authorize="isAnonymous()"
+         th:href="@{/login}">
+        Login
+      </a>
+
+      <a sec:authorize="isAnonymous()"
+         th:href="@{/register}">
+        Register
+      </a>
+
+      <!-- Logged in -->
+      <a sec:authorize="isAuthenticated()"
+         th:href="@{/profile}">
+        Profile
+      </a>
+
+      <form sec:authorize="isAuthenticated()"
+            method="post"
+            th:action="@{/logout}"
+            style="display:inline;">
+
+        <button type="submit"
+                class="link-button">
+          Log out
+        </button>
+
+      </form>
+
+    </nav>
+
+  </div>
+</header>
+
+
+<main>
+
+  <section class="shell">
+
     <div class="profile-card">
-      <div class="profile-head"><div class="avatar" th:text="${#strings.substring(account.fullName,0,1)}"></div><div><h1>My profile</h1><p>Manage your account and delivery details.</p></div></div>
-      <p role="status" th:if="${param.saved}">Profile saved.</p><p>Role: <strong th:text="${account.role}"></strong></p><form class="form-grid two-col" method="post" th:action="@{/profile}" th:object="${profile}"><div class="validation" role="alert" th:if="${#fields.hasErrors('*')}"><p th:each="e : ${#fields.errors('*')}" th:text="${e}"></p></div>
-        <div class="form-group"><label for="fullName">Full name</label><input th:field="*{fullName}" required maxlength="100" /></div>
-        <div class="form-group"><label for="email">Email address</label><input id="email" type="email" th:value="${account.email}" readonly /></div>
-        <div class="form-group"><label for="phone">Phone number (+679)</label><input th:field="*{phone}" required pattern="[0-9]{7}" maxlength="7" /></div>
-        
-        <div class="form-group full"><label for="deliveryAddress">Delivery address</label><textarea th:field="*{deliveryAddress}" rows="3" maxlength="500"></textarea></div>
-<button class="btn full" type="submit">Save changes</button></form><p><a th:href="@{/customer}">Customer access</a> · <a th:href="@{/staff}">Staff access</a> · <a th:href="@{/admin}">Admin access</a></p><form method="post" th:action="@{/logout}"><button class="btn btn-outline" type="submit">Log out</button></form>
+
+      <div class="profile-head">
+
+        <div class="avatar"
+             th:text="${#strings.substring(account.fullName,0,1)}">
+        </div>
+
+        <div>
+          <h1>My profile</h1>
+          <p>Manage your account and delivery details.</p>
+        </div>
+
+      </div>
+
+
+      <p role="status"
+         th:if="${param.saved}">
+        Profile saved.
+      </p>
+
+
+      <p>
+        Role:
+        <strong th:text="${account.role}"></strong>
+      </p>
+
+
+      <form class="form-grid two-col"
+            method="post"
+            th:action="@{/profile}"
+            th:object="${profile}">
+
+        <div class="validation"
+             role="alert"
+             th:if="${#fields.hasErrors('*')}">
+
+          <p th:each="e : ${#fields.errors('*')}"
+             th:text="${e}">
+          </p>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="fullName">
+            Full name
+          </label>
+
+          <input id="fullName"
+                 th:field="*{fullName}"
+                 required
+                 maxlength="100" />
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="email">
+            Email address
+          </label>
+
+          <input id="email"
+                 type="email"
+                 th:value="${account.email}"
+                 readonly />
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="phone">
+            Phone number (+679)
+          </label>
+
+          <input id="phone"
+                 th:field="*{phone}"
+                 required
+                 pattern="[0-9]{7}"
+                 maxlength="7" />
+
+        </div>
+
+
+        <div class="form-group full">
+
+          <label for="deliveryAddress">
+            Delivery address
+          </label>
+
+          <textarea id="deliveryAddress"
+                    th:field="*{deliveryAddress}"
+                    rows="3"
+                    maxlength="500"></textarea>
+
+        </div>
+
+
+        <button class="btn full"
+                type="submit">
+          Save changes
+        </button>
+
+      </form>
+
+
+      <!-- Show only access links that match the user's role -->
+
+      <p sec:authorize="hasRole('CUSTOMER')">
+        <a th:href="@{/customer}">
+          Customer access
+        </a>
+      </p>
+
+      <p sec:authorize="hasRole('STAFF')">
+        <a th:href="@{/staff}">
+          Staff access
+        </a>
+      </p>
+
+      <p sec:authorize="hasRole('ADMIN')">
+        <a th:href="@{/admin}">
+          Admin access
+        </a>
+      </p>
+
+      <p sec:authorize="hasRole('DELIVERY')">
+        <a th:href="@{/delivery/manage}">
+          Delivery access
+        </a>
+      </p>
+
+
+      <form method="post"
+            th:action="@{/logout}">
+
+        <button class="btn btn-outline"
+                type="submit">
+          Log out
+        </button>
+
+      </form>
+
     </div>
-  </section></main>
-  <footer>Bula Basket · Privacy policy · Contact us · © 2026, Suva, Fiji</footer>
+
+  </section>
+
+</main>
+
+
+<footer>
+  Bula Basket · Privacy policy · Contact us · © 2026, Suva, Fiji
+</footer>
+
 </body>
 </html>

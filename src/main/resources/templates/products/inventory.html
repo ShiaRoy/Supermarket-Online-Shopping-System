@@ -27,7 +27,7 @@
   </div>
   <p class="empty-state" th:if="${#lists.isEmpty(items)}" th:text="${#lists.isEmpty(stores)} ? 'No stores have been added.' : 'No products found.'"></p>
   <details class="store-create"><summary>Add store</summary><form th:action="@{/inventory/stores}" method="post" class="inventory-toolbar"><input name="name" required maxlength="100" placeholder="Store name" aria-label="Store name"><button class="btn" type="submit">Add store</button></form></details>
-  <form class="logout-form" th:action="@{/inventory/logout}" method="post"><button type="submit" class="btn btn-outline">Sign out</button></form>
+  <form class="logout-form" th:action="@{/logout}" method="post"><button type="submit" class="btn btn-outline">Sign out</button></form>
 </main>
 <footer th:replace="~{products/fragments :: footer}"></footer>
 </body></html>

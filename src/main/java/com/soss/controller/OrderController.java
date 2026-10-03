@@ -4,6 +4,7 @@ import com.soss.model.Order;
 import com.soss.model.OrderItem;
 import com.soss.model.OrderStatus;
 import com.soss.model.Payment;
+import com.soss.service.AccountService;
 import com.soss.service.OrderService;
 import com.soss.service.PaymentService;
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -36,76 +38,169 @@ public class OrderController {
 
     private final OrderService orderService;
     private final PaymentService paymentService;
+    private final AccountService accountService;
 
-    public OrderController(OrderService orderService, PaymentService paymentService) {
+    public OrderController(
+            OrderService orderService,
+            PaymentService paymentService,
+            AccountService accountService) {
+
         this.orderService = orderService;
         this.paymentService = paymentService;
+        this.accountService = accountService;
     }
 
+    /*
+     * Customer-facing "My Orders" page.
+     * Uses the currently logged-in account instead of requiring
+     * the customer ID to be placed in the URL.
+     */
+    @GetMapping
+    public String viewMyOrders(Principal principal, Model model) {
+
+        var user = accountService.profile(principal.getName());
+
+        model.addAttribute(
+                "orders",
+                orderService.getOrdersByCustomerId(user.getId())
+        );
+
+        model.addAttribute("customerId", user.getId());
+
+        return "orders";
+    }
+
+    /*
+     * JSON API - get one order.
+     */
     @ResponseBody
     @GetMapping("/{orderId}")
     public OrderResponse getOrder(@PathVariable Long orderId) {
         return toResponse(orderService.getOrderById(orderId));
     }
 
+    /*
+     * JSON API - get orders belonging to a customer.
+     */
     @ResponseBody
     @GetMapping("/customer/{customerId}")
-    public List<OrderResponse> getCustomerOrders(@PathVariable Long customerId) {
-        return orderService.getOrdersByCustomerId(customerId).stream()
+    public List<OrderResponse> getCustomerOrders(
+            @PathVariable Long customerId) {
+
+        return orderService
+                .getOrdersByCustomerId(customerId)
+                .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
+    /*
+     * JSON API - create an order.
+     */
     @ResponseBody
     @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
+    public ResponseEntity<OrderResponse> createOrder(
+            @Valid @RequestBody CreateOrderRequest request) {
+
         Order order = new Order();
+
         order.setCustomerId(request.customerId());
+
         for (OrderItemRequest requestedItem : request.items()) {
+
             OrderItem item = new OrderItem();
+
             item.setProductId(requestedItem.productId());
             item.setProductName(requestedItem.productName());
             item.setQuantity(requestedItem.quantity());
             item.setUnitPrice(requestedItem.unitPrice());
+
             order.addItem(item);
         }
+
         Order savedOrder = orderService.createOrder(order);
-        return ResponseEntity.created(URI.create("/orders/" + savedOrder.getId()))
+
+        return ResponseEntity
+                .created(URI.create("/orders/" + savedOrder.getId()))
                 .body(toResponse(savedOrder));
     }
 
-    @ResponseBody
-    @ExceptionHandler(IllegalArgumentException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleInvalidOrder(IllegalArgumentException exception) {
-        return Map.of("error", exception.getMessage());
-    }
-
+    /*
+     * Existing customer-order page kept for compatibility.
+     */
     @GetMapping("/customer/{customerId}/view")
-    public String viewCustomerOrders(@PathVariable Long customerId, Model model) {
-        model.addAttribute("orders", orderService.getOrdersByCustomerId(customerId));
+    public String viewCustomerOrders(
+            @PathVariable Long customerId,
+            Model model) {
+
+        model.addAttribute(
+                "orders",
+                orderService.getOrdersByCustomerId(customerId)
+        );
+
         model.addAttribute("customerId", customerId);
+
         return "orders";
     }
 
+    /*
+     * Order confirmation page.
+     */
     @GetMapping("/{orderId}/confirmation")
-    public String viewOrderConfirmation(@PathVariable Long orderId, Model model) {
+    public String viewOrderConfirmation(
+            @PathVariable Long orderId,
+            Model model) {
+
         Order order = orderService.getOrderById(orderId);
-        Payment latestPayment = paymentService.getPaymentsByOrderId(orderId).stream()
-                .max(Comparator.comparing(Payment::getPaymentDate,
-                        Comparator.nullsFirst(Comparator.naturalOrder()))
-                        .thenComparing(Payment::getId,
-                                Comparator.nullsFirst(Comparator.naturalOrder())))
+
+        Payment latestPayment = paymentService
+                .getPaymentsByOrderId(orderId)
+                .stream()
+                .max(
+                        Comparator.comparing(
+                                Payment::getPaymentDate,
+                                Comparator.nullsFirst(
+                                        Comparator.naturalOrder()
+                                )
+                        ).thenComparing(
+                                Payment::getId,
+                                Comparator.nullsFirst(
+                                        Comparator.naturalOrder()
+                                )
+                        )
+                )
                 .orElse(null);
+
         model.addAttribute("order", order);
         model.addAttribute("payment", latestPayment);
+
         return "confirmation";
     }
 
+    /*
+     * API error response.
+     */
+    @ResponseBody
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleInvalidOrder(
+            IllegalArgumentException exception) {
+
+        return Map.of(
+                "error",
+                exception.getMessage()
+        );
+    }
+
     private OrderResponse toResponse(Order order) {
-        // Keep responses independent of lazy collections and item back-references.
-        return new OrderResponse(order.getId(), order.getCustomerId(), order.getOrderDate(),
-                order.getTotalAmount(), order.getStatus());
+
+        return new OrderResponse(
+                order.getId(),
+                order.getCustomerId(),
+                order.getOrderDate(),
+                order.getTotalAmount(),
+                order.getStatus()
+        );
     }
 
     public record CreateOrderRequest(

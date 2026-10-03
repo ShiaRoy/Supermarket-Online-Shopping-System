@@ -1,36 +1,672 @@
-<!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<!doctype html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SOSS | Supermarket Online Shopping System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-          rel="stylesheet"
-          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
-          crossorigin="anonymous">
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+
+    <title>Bula Basket | Fresh Groceries</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap"
+          rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "DM Sans", sans-serif;
+            background: #fff8ed;
+            color: #1f2d28;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        /* HEADER */
+
+        .site-header {
+            background: linear-gradient(120deg, #0a7d70, #258bac);
+            padding: 12px 6%;
+            color: white;
+        }
+
+        .header-inner {
+            max-width: 1250px;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 30px;
+        }
+
+        .logo {
+            width: 230px;
+            height: 68px;
+            object-fit: contain;
+            object-position: left center;
+            display: block;
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .nav a,
+        .logout-button {
+            color: white;
+            font: inherit;
+            font-weight: 600;
+            border: 0;
+            background: transparent;
+            padding: 10px 14px;
+            border-radius: 11px;
+            cursor: pointer;
+        }
+
+        .nav a:hover,
+        .logout-button:hover {
+            background: rgba(255,255,255,.14);
+        }
+
+        .nav .active {
+            background: white;
+            color: #087568;
+        }
+
+        .nav form {
+            margin: 0;
+        }
+
+        /* PAGE */
+
+        .page {
+            max-width: 1250px;
+            margin: auto;
+            padding: 36px 6% 60px;
+        }
+
+        /* HERO */
+
+        .hero {
+            background: linear-gradient(115deg, #087565, #168d7c);
+            border-radius: 26px;
+            color: white;
+            min-height: 330px;
+            display: grid;
+            grid-template-columns: 1.3fr .7fr;
+            overflow: hidden;
+            box-shadow: 0 16px 40px rgba(35, 70, 60, .12);
+        }
+
+        .hero-content {
+            padding: 52px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .hero-label {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            opacity: .85;
+            margin-bottom: 12px;
+        }
+
+        .hero h1 {
+            font-family: "DM Serif Display", serif;
+            font-size: clamp(43px, 5vw, 64px);
+            line-height: 1.05;
+            margin: 0 0 18px;
+        }
+
+        .hero p {
+            max-width: 590px;
+            margin: 0 0 28px;
+            line-height: 1.7;
+            font-size: 17px;
+            color: rgba(255,255,255,.9);
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            min-height: 49px;
+            padding: 0 23px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .btn-primary {
+            background: #ffb72c;
+            color: #19372f;
+        }
+
+        .btn-outline {
+            color: white;
+            border: 2px solid rgba(255,255,255,.75);
+        }
+
+        .hero-art {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                radial-gradient(circle,
+                rgba(255,210,95,.28),
+                transparent 55%);
+        }
+
+        .hero-icon {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: #fff0bd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 90px;
+            box-shadow: 0 15px 35px rgba(0,0,0,.12);
+        }
+
+        /* SECTIONS */
+
+        .section {
+            margin-top: 48px;
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            gap: 20px;
+            margin-bottom: 22px;
+        }
+
+        .section-head h2 {
+            margin: 0;
+            font-family: "DM Serif Display", serif;
+            font-size: 32px;
+        }
+
+        .section-head p {
+            margin: 6px 0 0;
+            color: #75807b;
+        }
+
+        .section-link {
+            color: #08786a;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        /* AISLES */
+
+        .aisle-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+        }
+
+        .aisle-card {
+            background: white;
+            color: #20302a;
+            border: 1px solid #eee3d3;
+            border-radius: 19px;
+            padding: 23px 16px;
+            text-align: center;
+            transition: .2s;
+        }
+
+        .aisle-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(40,60,50,.08);
+        }
+
+        .aisle-icon {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            margin: auto auto 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 31px;
+            background: #e3f5ee;
+        }
+
+        .aisle-card:nth-child(2) .aisle-icon {
+            background: #fff0ce;
+        }
+
+        .aisle-card:nth-child(3) .aisle-icon {
+            background: #fde6df;
+        }
+
+        .aisle-card:nth-child(4) .aisle-icon {
+            background: #e7f0fb;
+        }
+
+        .aisle-card:nth-child(5) .aisle-icon {
+            background: #f0e8fa;
+        }
+
+        .aisle-card strong {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .aisle-card span {
+            color: #7d8681;
+            font-size: 13px;
+        }
+
+        /* BENEFITS */
+
+        .benefit-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        .benefit {
+            background: white;
+            border: 1px solid #eee4d7;
+            border-radius: 20px;
+            padding: 29px;
+        }
+
+        .benefit-icon {
+            font-size: 34px;
+            margin-bottom: 16px;
+        }
+
+        .benefit h3 {
+            margin: 0 0 8px;
+            font-size: 19px;
+        }
+
+        .benefit p {
+            margin: 0;
+            line-height: 1.6;
+            color: #747e79;
+        }
+
+        /* INFO */
+
+        .info-strip {
+            margin-top: 48px;
+            background: #ffe2a3;
+            border-radius: 18px;
+            padding: 22px 26px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+        }
+
+        .info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .info-icon {
+            min-width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .info strong {
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .info span {
+            font-size: 13px;
+            color: #665f50;
+        }
+
+        footer {
+            background: #17362e;
+            color: #dce9e5;
+            padding: 27px 6%;
+        }
+
+        .footer-inner {
+            max-width: 1250px;
+            margin: auto;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 950px) {
+            .header-inner {
+                flex-direction: column;
+            }
+
+            .hero {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-art {
+                padding: 35px;
+            }
+
+            .aisle-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .benefit-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .info-strip {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .aisle-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .hero-content {
+                padding: 34px 25px;
+            }
+
+            .logo {
+                width: 190px;
+            }
+
+            .nav {
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
+
 <body>
-<nav class="navbar navbar-dark bg-success" aria-label="Main navigation">
-    <div class="container">
-        <a class="navbar-brand brand" th:href="@{/}" aria-current="page">
-            <strong>SOSS</strong>
-            <span class="brand-description">Supermarket Online Shopping System</span>
+
+<header class="site-header">
+
+    <div class="header-inner">
+
+        <a th:href="@{/}">
+            <img class="logo"
+                 th:src="@{/images/bula-basket-logo.png}"
+                 alt="Bula Basket logo">
         </a>
+
+        <nav class="nav">
+
+            <a class="active" th:href="@{/}">Home</a>
+            <a th:href="@{/products}">Products</a>
+            <a th:href="@{/search}">Search</a>
+
+            <a sec:authorize="hasRole('CUSTOMER')"
+               th:href="@{/cart}">Cart</a>
+
+            <a sec:authorize="hasRole('CUSTOMER')"
+               th:href="@{/orders}">Orders</a>
+
+            <a sec:authorize="hasAnyRole('STAFF','ADMIN')"
+               th:href="@{/inventory}">Inventory</a>
+
+            <a sec:authorize="hasAnyRole('STAFF','ADMIN','DELIVERY')"
+               th:href="@{/delivery/manage}">Delivery</a>
+
+            <a sec:authorize="isAnonymous()"
+               th:href="@{/login}">Login</a>
+
+            <a sec:authorize="isAnonymous()"
+               th:href="@{/register}">Register</a>
+
+            <a sec:authorize="isAuthenticated()"
+               th:href="@{/profile}">Profile</a>
+
+            <form sec:authorize="isAuthenticated()"
+                  method="post"
+                  th:action="@{/logout}">
+
+                <button class="logout-button" type="submit">
+                    Log out
+                </button>
+
+            </form>
+
+        </nav>
+
     </div>
-</nav>
-<main class="container py-5">
-    <section class="welcome-panel p-4 p-md-5" aria-labelledby="welcome-heading">
-        <p class="text-success fw-semibold mb-2">University group project</p>
-        <h1 id="welcome-heading" class="display-5 fw-bold">Welcome to SOSS</h1>
-        <p class="lead mb-0">Supermarket Online Shopping System</p>
-        <hr class="my-4"><p><a th:href="@{/register}">Create account</a> · <a th:href="@{/login}">Log in</a> · <a th:href="@{/profile}">My profile</a></p>
-        <p class="text-secondary mb-0">The shared project foundation is ready. Shopping features will be added as the project develops.</p>
+
+</header>
+
+
+<main class="page">
+
+    <section class="hero">
+
+        <div class="hero-content">
+
+            <div class="hero-label">
+                Bula Basket · Suva
+            </div>
+
+            <h1>
+                Fresh groceries,<br>
+                without the queue.
+            </h1>
+
+            <p>
+                Find what you need, check what's available and
+                place your grocery order online from home.
+            </p>
+
+            <div class="hero-actions">
+
+                <a class="btn btn-primary"
+                   th:href="@{/products}">
+                    Start shopping
+                </a>
+
+                <a class="btn btn-outline"
+                   th:href="@{/search}">
+                    Find a product
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <div class="hero-art">
+
+            <div class="hero-icon">
+                🛒
+            </div>
+
+        </div>
+
     </section>
+
+
+    <section class="section">
+
+        <div class="section-head">
+
+            <div>
+                <h2>Shop by aisle</h2>
+                <p>Jump straight to what you're looking for.</p>
+            </div>
+
+            <a class="section-link"
+               th:href="@{/products}">
+                Full catalogue →
+            </a>
+
+        </div>
+
+
+        <div class="aisle-grid">
+
+            <a class="aisle-card" th:href="@{/products}">
+                <div class="aisle-icon">🥛</div>
+                <strong>Dairy & breakfast</strong>
+                <span>Milk, cereal & essentials</span>
+            </a>
+
+            <a class="aisle-card" th:href="@{/products}">
+                <div class="aisle-icon">🍞</div>
+                <strong>Pantry</strong>
+                <span>Everyday staples</span>
+            </a>
+
+            <a class="aisle-card" th:href="@{/products}">
+                <div class="aisle-icon">🍪</div>
+                <strong>Snacks</strong>
+                <span>Biscuits & treats</span>
+            </a>
+
+            <a class="aisle-card" th:href="@{/products}">
+                <div class="aisle-icon">🥬</div>
+                <strong>Fresh produce</strong>
+                <span>Fruit & vegetables</span>
+            </a>
+
+            <a class="aisle-card" th:href="@{/products}">
+                <div class="aisle-icon">🧃</div>
+                <strong>Beverages</strong>
+                <span>Juice & drinks</span>
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <section class="section">
+
+        <div class="section-head">
+
+            <div>
+                <h2>Shopping made simpler</h2>
+                <p>From your basket to your doorstep.</p>
+            </div>
+
+        </div>
+
+
+        <div class="benefit-grid">
+
+            <div class="benefit">
+                <div class="benefit-icon">🛒</div>
+                <h3>Build your basket</h3>
+                <p>
+                    Add available groceries and review everything
+                    before placing your order.
+                </p>
+            </div>
+
+            <div class="benefit">
+                <div class="benefit-icon">💳</div>
+                <h3>Checkout online</h3>
+                <p>
+                    Confirm your delivery details and complete the
+                    payment process in one flow.
+                </p>
+            </div>
+
+            <div class="benefit">
+                <div class="benefit-icon">📦</div>
+                <h3>Follow your order</h3>
+                <p>
+                    Check your order and delivery status after
+                    checkout.
+                </p>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="info-strip">
+
+        <div class="info">
+            <div class="info-icon">📍</div>
+
+            <div>
+                <strong>Bula Basket Suva</strong>
+                <span>Your local online grocery store.</span>
+            </div>
+        </div>
+
+        <div class="info">
+            <div class="info-icon">🚚</div>
+
+            <div>
+                <strong>Delivery</strong>
+                <span>Select your address and delivery window at checkout.</span>
+            </div>
+        </div>
+
+        <div class="info">
+            <div class="info-icon">🔒</div>
+
+            <div>
+                <strong>Account protected</strong>
+                <span>Secure login and role-based access.</span>
+            </div>
+        </div>
+
+    </section>
+
 </main>
-<footer class="container pb-4 text-secondary">
-    <small>SOSS &middot; Supermarket Online Shopping System</small>
+
+
+<footer>
+
+    <div class="footer-inner">
+
+        <span>
+            Bula Basket · Fresh groceries around Suva
+        </span>
+
+        <span>
+            © 2026 Supermarket Online Shopping System
+        </span>
+
+    </div>
+
 </footer>
+
 </body>
 </html>
-
