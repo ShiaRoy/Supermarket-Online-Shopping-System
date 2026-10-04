@@ -94,59 +94,12 @@
             text-align: center;
         }
     </style>
+    <link rel="stylesheet" th:href="@{/css/navigation.css}" />
 </head>
 
 <body>
 
-<header class="site-header">
-
-    <div class="header-inner orders-header">
-
-        <a th:href="@{/}">
-            <img class="orders-logo"
-                 th:src="@{/images/bula-basket-logo.png}"
-                 alt="Bula Basket" />
-        </a>
-
-        <nav class="orders-nav"
-             aria-label="Primary navigation">
-
-            <a th:href="@{/}">
-                Home
-            </a>
-
-            <a th:href="@{/products}">
-                Products
-            </a>
-
-            <a th:href="@{/cart}">
-                Cart
-            </a>
-
-            <a th:href="@{/orders}">
-                My Orders
-            </a>
-
-            <a th:href="@{/profile}">
-                Profile
-            </a>
-
-            <form class="logout-form"
-                  method="post"
-                  th:action="@{/logout}">
-
-                <button class="logout-link"
-                        type="submit">
-                    Log out
-                </button>
-
-            </form>
-
-        </nav>
-
-    </div>
-
-</header>
+<header th:replace="~{fragments :: siteHeader('orders')}"></header>
 
 
 <main>

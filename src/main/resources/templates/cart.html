@@ -1,28 +1,32 @@
-<!doctype html><html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments :: head('Your basket')}"></head><body>
-<header th:replace="~{fragments :: header('cart')}"></header><main class="shop-container">
-<h1>Your basket</h1><div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
-<div class="row g-4"><div class="col-lg-7">
-<section class="panel cart-lines" aria-label="Cart items">
-<div th:if="${basket.lines.isEmpty()}" class="empty"><h2>Your basket is empty</h2><a th:href="@{/}" class="btn btn-outline-success">Browse groceries</a></div>
-<div class="cart-line" th:each="line : ${basket.lines}"><div class="product-icon" aria-hidden="true" th:text="${line.icon}"></div><div class="product-name"><strong th:text="${line.name}"></strong><small th:text="'$' + ${#numbers.formatDecimal(line.unitPrice,1,2)} + ' each'"></small></div>
-<form th:action="@{/cart/quantity}" method="post" class="quantity"><input type="hidden" name="productId" th:value="${line.id}">
-<button name="delta" value="-1" th:aria-label="'Decrease quantity of ' + ${line.name}">−</button><span th:text="${line.quantity}"></span><button name="delta" value="1" th:disabled="${line.quantity>=99}" th:aria-label="'Increase quantity of ' + ${line.name}">+</button></form>
-<strong class="line-price" th:text="'$' + ${#numbers.formatDecimal(line.total,1,2)}"></strong></div></section>
-<section class="panel delivery"><h2>Delivery details</h2>
-<label for="deliverySlot" class="form-label">Time slot</label><select id="deliverySlot" name="deliverySlot" form="checkout" class="form-select" required>
-<option value="">Choose a delivery time</option><option th:each="slot : ${slots}" th:value="${slot}" th:text="${slot}" th:selected="${slot==checkout.deliverySlot}"></option></select>
-<label for="address" class="form-label mt-3">Address</label><textarea id="address" name="address" form="checkout" class="form-control" rows="2" maxlength="300" required placeholder="Street, suburb and city" th:text="${checkout.address}"></textarea>
-</section></div><div class="col-lg-5"><section class="panel summary"><h2>Order summary</h2>
-<div class="summary-row"><span>Subtotal</span><span th:text="'$' + ${#numbers.formatDecimal(basket.subtotal,1,2)}"></span></div>
-<div class="summary-row"><span>Delivery fee</span><span th:text="'$' + ${#numbers.formatDecimal(basket.delivery,1,2)}"></span></div>
-<div class="summary-row"><span>Promo discount</span><span th:text="'−$' + ${#numbers.formatDecimal(basket.discount,1,2)}"></span></div>
-<form th:action="@{/cart/promo}" method="post" class="promo"><label for="code" class="visually-hidden">Promo code</label><input id="code" name="code" maxlength="32" th:value="${basket.promo}" placeholder="Enter code" class="form-control"><button class="btn apply">Apply</button></form>
-<small class="muted">Use BULA10 for 10% off groceries. Clear the code to remove it.</small>
-<div class="summary-row total"><strong>Total</strong><strong th:text="'$' + ${#numbers.formatDecimal(basket.total,1,2)}"></strong></div>
-<form id="checkout" th:action="@{/checkout}" method="post" th:object="${checkout}">
-<input type="hidden" th:field="*{token}"><div class="alert alert-danger" th:if="${#fields.hasAnyErrors()}"><p th:each="err : ${#fields.allErrors()}" th:text="${err}"></p></div>
-<fieldset><legend>Pay with</legend><label class="payment" th:each="payment : ${payments}"><input type="radio" th:field="*{paymentMethod}" th:value="${payment}" required><span th:text="${payment}"></span></label></fieldset>
-<button class="place-order" th:disabled="${basket.lines.isEmpty()}">Place order</button>
-<p class="payment-note">Choose your preferred payment method. Payment is handled by the shared Orders/Payments module.</p></form></section></div></div></main>
-<footer th:replace="~{fragments :: footer}"></footer></body></html>
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Your cart')}"></head>
+<body>
+<header th:replace="~{fragments :: siteHeader('cart')}"></header>
+<main class="shop-container">
+  <div class="cart-page-head">
+    <div><h1>Your cart</h1><p class="muted">Review your groceries before checkout.</p></div>
+    <a class="btn btn-outline-success" th:href="@{/products}">Continue shopping</a>
+  </div>
+  <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+  <div class="row g-4">
+    <div class="col-lg-7"><section class="panel cart-lines" aria-label="Cart items">
+      <div th:if="${basket.lines.isEmpty()}" class="empty"><h2>Your cart is empty</h2><a th:href="@{/products}" class="btn btn-outline-success">Browse groceries</a></div>
+      <div class="cart-line" th:each="line : ${basket.lines}">
+        <div class="product-icon" aria-hidden="true" th:text="${line.icon}"></div>
+        <div class="product-name"><strong th:text="${line.name}"></strong><small th:text="'FJ$ ' + ${#numbers.formatDecimal(line.unitPrice,1,2)} + ' each'"></small></div>
+        <form th:action="@{/cart/quantity}" method="post" class="quantity"><input type="hidden" name="productId" th:value="${line.id}"><button name="delta" value="-1" th:aria-label="'Decrease quantity of ' + ${line.name}">&#8722;</button><span th:text="${line.quantity}"></span><button name="delta" value="1" th:disabled="${line.quantity>=99}" th:aria-label="'Increase quantity of ' + ${line.name}">+</button></form>
+        <strong class="line-price" th:text="'FJ$ ' + ${#numbers.formatDecimal(line.total,1,2)}"></strong>
+      </div>
+    </section></div>
+    <div class="col-lg-5"><section class="panel summary"><h2>Cart summary</h2>
+      <div class="summary-row"><span>Subtotal</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.subtotal,1,2)}"></span></div>
+      <form th:action="@{/cart/promo}" method="post" class="promo"><label for="code" class="visually-hidden">Promo code</label><input id="code" name="code" maxlength="32" th:value="${basket.promo}" placeholder="Enter code" class="form-control"><button class="btn apply">Apply</button></form>
+      <small class="muted">Use BULA10 for 10% off groceries. Clear the code to remove it.</small>
+      <div class="summary-row total"><strong>Estimated total</strong><strong th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.total,1,2)}"></strong></div>
+      <a class="place-order cart-checkout-link" th:classappend="${basket.lines.isEmpty()} ? 'disabled' : ''" th:href="@{/checkout}">Proceed to checkout</a>
+    </section></div>
+  </div>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body></html>

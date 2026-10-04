@@ -1,59 +1,306 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
   <title>Bula Basket | Track order</title>
-  <!-- Reloads every 30 seconds so customers see new status without refreshing; stops once delivered. -->
-  <meta http-equiv="refresh" content="30" th:unless="${delivery.status.name() == 'DELIVERED'}" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" th:href="@{/css/styles.css}" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap"
+        rel="stylesheet">
+
+  <link rel="stylesheet" th:href="@{/css/styles.css}">
+  <link rel="stylesheet" th:href="@{/css/navigation.css}">
+
+  <style>
+    .tracking-shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 42px 24px 60px;
+    }
+
+    .delivery-page-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 28px;
+      margin-bottom: 30px;
+    }
+
+    .delivery-heading-copy {
+      min-width: 0;
+    }
+
+    .delivery-heading-copy .meta {
+      margin: 0 0 8px;
+    }
+
+    .delivery-title-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .delivery-title-row .section-title {
+      margin: 0;
+    }
+
+    .delivery-title-row .status {
+      position: static !important;
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    .delivery-page-head .back-orders {
+      position: static !important;
+      flex-shrink: 0;
+      margin-top: 25px;
+      white-space: nowrap;
+    }
+
+    .delivery-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .tracking-card,
+    .info-card {
+      background: #ffffff;
+      border: 1px solid #eee3d3;
+      border-radius: 22px;
+      padding: 28px;
+      box-shadow: 0 10px 28px rgba(34, 60, 50, 0.06);
+    }
+
+    .tracking-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .tracking-top h2,
+    .info-card h2 {
+      margin: 0;
+    }
+
+    .delivery-timeline {
+      margin: 0;
+      padding: 0;
+    }
+
+    .delivery-note {
+      margin-top: 28px;
+    }
+
+    .delivery-details {
+      margin: 22px 0 0;
+    }
+
+    .delivery-details > div {
+      padding: 15px 0;
+      border-bottom: 1px solid #eee8df;
+    }
+
+    .delivery-details > div:last-child {
+      border-bottom: 0;
+    }
+
+    .delivery-details dt {
+      color: #8a6d58;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .delivery-details dd {
+      margin: 0;
+      font-weight: 600;
+      color: #163f37;
+    }
+
+    @media (max-width: 850px) {
+      .delivery-page-head {
+        flex-direction: column;
+      }
+
+      .delivery-page-head .back-orders {
+        margin-top: 0;
+      }
+
+      .delivery-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
+
 <body>
-  <!-- TODO(integration): header and footer are copied from the interface design. Other modules' links
-       are "#" until their routes exist; ideally one person turns this header into a shared fragment. -->
-  <header class="site-header"><div class="header-inner">
-    <a class="brand" th:href="@{/}"><span class="brand-mark">B</span><span><strong>Bula Basket</strong><small>Fresh groceries around Suva</small></span></a>
-    <nav class="nav"><a th:href="@{/}">Home</a><a href="#">Search</a><a href="#">Cart</a><a href="#">My orders</a><a class="active" th:href="@{/delivery/track}">Track order</a></nav>
-    <a class="cart-pill" href="#"><span>🧺</span> Cart</a>
-  </div></header>
-  <main><section class="shell">
-    <div class="delivery-page-head"><div>
-      <span class="meta" th:text="'#' + ${delivery.orderId}">#1</span>
-      <h1 class="section-title">Track your grocery delivery</h1>
-      <span th:class="${delivery.status.name() == 'DELIVERED'} ? 'status delivered' : 'status delivery'" th:text="${delivery.status.label}">Out for delivery</span>
-    </div><a class="btn btn-outline" href="#">Back to my orders</a></div>
-    <div class="delivery-grid">
-      <article class="tracking-card">
-        <div class="tracking-top"><h2>Delivery progress</h2><span class="meta" th:text="'Updated ' + ${@deliveryDisplay.updatedAt(delivery)}">Updated just now</span></div>
-        <div class="track-list">
-          <div th:each="step : ${steps}" class="track-step"
-               th:classappend="${delivery.status.name() == 'DELIVERED' or step.ordinal() &lt; delivery.status.ordinal() ? 'done' : (step == delivery.status ? 'current' : '')}">
-            <div class="track-dot"
-                 th:text="${delivery.status.name() == 'DELIVERED' or step.ordinal() &lt; delivery.status.ordinal() ? '✓' : (step == delivery.status ? (step.name() == 'OUT_FOR_DELIVERY' ? '🚚' : '●') : '')}"></div>
-            <div class="track-copy">
-              <strong th:text="${step.label}">Confirmed</strong>
-              <small th:text="${step.name() == 'DELIVERED' and delivery.status.name() == 'DELIVERED' ? 'Your order has been delivered.' : step.description}">Your order has been confirmed.</small>
-            </div>
-          </div>
+
+<header th:replace="~{fragments :: siteHeader('orders')}"></header>
+
+<main>
+  <section class="shell tracking-shell">
+
+    <div class="delivery-page-head">
+
+      <div class="delivery-heading-copy">
+
+        <p class="meta"
+           th:text="'Order #' + ${delivery.orderId}">
+          Order #1
+        </p>
+
+        <div class="delivery-title-row">
+
+          <h1 class="section-title">
+            Track your grocery delivery
+          </h1>
+
+          <span th:class="${delivery.status.name() == 'DELIVERED'}
+                         ? 'status delivered'
+                         : 'status delivery'"
+                th:text="${delivery.status.label}">
+            Confirmed
+          </span>
+
         </div>
-        <div class="delivery-note"
-             th:text="${delivery.status.name() == 'DELIVERED' ? 'Your order has been delivered. Vinaka for shopping with Bula Basket!' : 'Your order is on the way. Delivery times may shift slightly because of traffic or weather.'}">
-          Your order is on the way. Delivery times may shift slightly because of traffic or weather.
-        </div>
-      </article>
-      <aside>
-        <section class="info-card"><h2>Delivery details</h2>
-          <div class="info-pair"><span>Expected</span><strong th:text="${@deliveryDisplay.expectedWindow(delivery)}">Today, 2pm – 4pm</strong></div>
-          <div class="info-pair"><span>Address</span><strong th:text="${delivery.deliveryAddress}">Vuci Road, Nausori</strong></div>
-          <div class="info-pair"><span>Driver</span><strong th:text="${delivery.assignedStaffId != null} ? 'Assigned delivery staff' : 'Not yet assigned'">Assigned delivery staff</strong></div>
-          <button type="button" class="btn btn-outline" style="width:100%;margin-top:8px">Contact delivery</button>
-        </section>
-        <!-- The interface's "Order summary" card (items, total, payment) is omitted: that data belongs to
-             the Orders and Payments modules and is not stored in Delivery. -->
-      </aside>
+
+      </div>
+
+      <a sec:authorize="hasRole('CUSTOMER')"
+         class="btn btn-outline back-orders"
+         th:href="@{/orders}">
+        Back to My Orders
+      </a>
+
     </div>
-  </section></main>
-  <footer>Bula Basket · Privacy policy · Contact us · © 2026, Suva, Fiji</footer>
+
+
+    <div class="delivery-grid">
+
+      <article class="tracking-card">
+
+        <div class="tracking-top">
+
+          <h2>Delivery progress</h2>
+
+          <span class="meta"
+                th:text="'Updated ' + ${@deliveryDisplay.updatedAt(delivery)}">
+            Updated just now
+          </span>
+
+        </div>
+
+
+        <ol class="delivery-timeline">
+
+          <li th:each="step : ${steps}"
+              th:classappend="${delivery.status.name() == 'DELIVERED'
+              or step.ordinal() < delivery.status.ordinal()
+              ? 'complete'
+              : (step == delivery.status ? 'current' : '')}">
+
+            <span class="timeline-marker"
+                  th:text="${delivery.status.name() == 'DELIVERED'
+                  or step.ordinal() < delivery.status.ordinal()
+                  ? '&#10003;'
+                  : ''}">
+            </span>
+
+            <div>
+
+              <strong th:text="${step.label}">
+                Confirmed
+              </strong>
+
+              <small th:text="${step.description}">
+                Your order has been confirmed.
+              </small>
+
+            </div>
+
+          </li>
+
+        </ol>
+
+
+        <div class="delivery-note"
+             th:text="${delivery.status.name() == 'DELIVERED'
+             ? 'Your order has been delivered. Vinaka for shopping with Bula Basket!'
+             : 'Your order is on the way. Delivery times may shift slightly because of traffic or weather.'}">
+          Your order is on the way.
+        </div>
+
+      </article>
+
+
+      <aside>
+
+        <section class="info-card">
+
+          <h2>Delivery details</h2>
+
+          <dl class="delivery-details">
+
+            <div>
+              <dt>Expected delivery</dt>
+
+              <dd th:text="${@deliveryDisplay.expectedWindow(delivery)}">
+                Today, 2pm – 4pm
+              </dd>
+            </div>
+
+
+            <div>
+              <dt>Address</dt>
+
+              <dd th:text="${delivery.deliveryAddress}">
+                Suva
+              </dd>
+            </div>
+
+
+            <div>
+              <dt>Driver</dt>
+
+              <dd th:text="${delivery.assignedStaffId != null}
+                           ? 'Assigned delivery staff'
+                           : 'Not yet assigned'">
+                Not yet assigned
+              </dd>
+            </div>
+
+
+            <div>
+              <dt>Current status</dt>
+
+              <dd th:text="${delivery.status.label}">
+                Confirmed
+              </dd>
+            </div>
+
+          </dl>
+
+        </section>
+
+      </aside>
+
+    </div>
+
+  </section>
+</main>
+
+<footer th:replace="~{fragments :: footer}"></footer>
+
 </body>
 </html>

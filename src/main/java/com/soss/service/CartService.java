@@ -108,8 +108,8 @@ public class CartService {
         if (existing.isPresent()) return existing.get();
         if (!cart.checkoutToken.equals(form.getToken()))
             throw new IllegalArgumentException("Your basket changed. Review it and place the order again.");
-        if (form.getAddress() == null || form.getAddress().isBlank() || form.getAddress().length() > 300)
-            throw new IllegalArgumentException("Enter a delivery address (maximum 300 characters).");
+        if (form.getAddress() == null || form.getAddress().isBlank() || form.getAddress().length() > 255)
+            throw new IllegalArgumentException("Enter a delivery address (maximum 255 characters).");
         if (!slots().contains(form.getDeliverySlot())) throw new IllegalArgumentException("Choose an available delivery time.");
         if (!PAYMENTS.contains(form.getPaymentMethod())) throw new IllegalArgumentException("Choose a payment method.");
         for (Long id : cart.quantities.keySet()) {

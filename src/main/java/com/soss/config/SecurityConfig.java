@@ -27,6 +27,7 @@ public class SecurityConfig {
                                 "/",
                                 "/login",
                                 "/register",
+                                "/access-denied",
                                 "/products",
                                 "/products/**",
                                 "/search",
@@ -83,6 +84,9 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/customer",
                                 "/customer/**",
+                                "/api/cart",
+                                "/api/cart/**",
+                                "/api/checkout",
                                 "/cart",
                                 "/cart/**",
                                 "/checkout",
@@ -105,6 +109,10 @@ public class SecurityConfig {
 
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")
+                )
+
+                .exceptionHandling(exceptions -> exceptions
+                        .accessDeniedPage("/access-denied")
                 )
 
                 .build();

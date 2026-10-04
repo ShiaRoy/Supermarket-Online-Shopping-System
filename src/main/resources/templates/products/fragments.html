@@ -1,5 +1,7 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <head th:fragment="head(title)">
   <meta charset="UTF-8">
@@ -15,61 +17,66 @@
 
   <link rel="stylesheet" th:href="@{/css/products/styles.css}">
   <link rel="stylesheet" th:href="@{/css/products/module.css}">
+  <link rel="stylesheet" th:href="@{/css/navigation.css}">
 
   <script defer th:src="@{/js/products.js}"></script>
 </head>
 
 <body>
 
-<header th:fragment="header" class="site-header">
-  <div class="header-inner">
-
-    <a class="brand" th:href="@{/products}">
-      <span class="brand-mark">B</span>
-
-      <span>
-        <strong>Bula Basket</strong>
-        <small>Fresh groceries around Suva</small>
-      </span>
-    </a>
-
-    <button class="menu-toggle"
-            type="button"
-            aria-label="Toggle navigation"
-            aria-expanded="false"
-            aria-controls="primary-nav">
-      &#9776;
-    </button>
-
-    <nav id="primary-nav"
-         class="nav"
-         aria-label="Primary navigation">
-
-      <a th:href="@{/products}">Home</a>
-      <a th:href="@{/search}">Search</a>
-      <a th:href="@{/cart}">Cart</a>
-      <a th:href="@{/inventory}">Inventory</a>
-
-    </nav>
-  </div>
-</header>
-
-
 <footer th:fragment="footer">
   Bula Basket &middot; Suva, Fiji &middot; 2026
 </footer>
 
 
-<span th:fragment="icon(key)"
-      th:switch="${key}"
+<!--
+  Product icon:
+  1. Use a specific icon when the product already has a recognised icon key.
+  2. If the icon key is unknown, choose a sensible icon from the category.
+  3. Only use the basket as the final fallback.
+-->
+<span th:fragment="icon(key, category)"
       aria-hidden="true">
 
-  <span th:case="'milk'">&#129371;</span>
-  <span th:case="'bread'">&#127838;</span>
-  <span th:case="'chicken'">&#127831;</span>
-  <span th:case="'juice'">&#129475;</span>
-  <span th:case="'drink'">&#129380;</span>
-  <span th:case="*">&#129530;</span>
+  <span th:switch="${key}">
+
+    <span th:case="'milk'">🥛</span>
+    <span th:case="'bread'">🍞</span>
+    <span th:case="'rice'">🍚</span>
+    <span th:case="'banana'">🍌</span>
+    <span th:case="'apple'">🍎</span>
+    <span th:case="'potato'">🥔</span>
+    <span th:case="'eggs'">🥚</span>
+    <span th:case="'cheese'">🧀</span>
+    <span th:case="'sugar'">🧂</span>
+    <span th:case="'flour'">🌾</span>
+    <span th:case="'oil'">🧴</span>
+    <span th:case="'juice'">🧃</span>
+    <span th:case="'drink'">🥤</span>
+    <span th:case="'water'">💧</span>
+    <span th:case="'chips'">🍿</span>
+    <span th:case="'cleaning'">🧼</span>
+    <span th:case="'tissue'">🧻</span>
+    <span th:case="'frozen'">❄️</span>
+    <span th:case="'chicken'">🍗</span>
+
+    <span th:case="*">
+
+      <span th:switch="${category}">
+        <span th:case="'Dairy'">🥛</span>
+        <span th:case="'Produce'">🍎</span>
+        <span th:case="'Bakery'">🍞</span>
+        <span th:case="'Beverages'">🧃</span>
+        <span th:case="'Pantry'">🥫</span>
+        <span th:case="'Snacks'">🍿</span>
+        <span th:case="'Household'">🧼</span>
+        <span th:case="'Frozen'">❄️</span>
+        <span th:case="*">🧺</span>
+      </span>
+
+    </span>
+
+  </span>
 
 </span>
 
@@ -88,7 +95,8 @@
         In stock
       </span>
 
-      <span th:replace="~{products/fragments :: icon(${item.product.icon})}"></span>
+      <span th:replace="~{products/fragments :: icon(${item.product.icon}, ${item.product.category})}">
+      </span>
 
     </div>
 
@@ -113,7 +121,8 @@
       </span>
 
 
-      <form th:if="${item.quantity > 0}"
+      <form sec:authorize="hasRole('CUSTOMER')"
+            th:if="${item.quantity > 0}"
             th:action="@{/cart/quantity}"
             method="post">
 
@@ -124,6 +133,10 @@
         <input type="hidden"
                name="delta"
                value="1">
+
+        <input type="hidden"
+               name="returnTo"
+               th:value="|/products?storeId=${store.id}|">
 
         <button class="btn add-btn"
                 type="submit">
@@ -150,30 +163,15 @@
 </div>
 
 
-<form th:fragment="filters(action)"
-      class="filters"
-      method="get"
-      th:action="@{${action}}">
-
-  <div class="form-group filter-group">
-
-    <label for="q">Search products</label>
-
-    <input id="q"
-           name="q"
-           type="search"
-           maxlength="120"
-           th:value="${q}"
-           placeholder="Product name">
-
-  </div>
-
+<div th:fragment="filters"
+     class="filters filter-toolbar">
 
   <div class="form-group filter-group">
 
     <label for="storeId">Store</label>
 
-    <select id="storeId" name="storeId">
+    <select id="storeId"
+            name="storeId">
 
       <option th:each="branch : ${stores}"
               th:value="${branch.id}"
@@ -190,7 +188,8 @@
 
     <label for="category">Aisle</label>
 
-    <select id="category" name="category">
+    <select id="category"
+            name="category">
 
       <option value="">
         All aisles
@@ -277,11 +276,11 @@
 
 
   <a class="text-link reset-link"
-     th:href="@{${action}(storeId=${store?.id})}">
+     th:href="@{/products(storeId=${store?.id})}">
     Clear filters
   </a>
 
-</form>
+</div>
 
 </body>
 </html>

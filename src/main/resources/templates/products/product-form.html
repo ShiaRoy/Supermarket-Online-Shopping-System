@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{products/fragments :: head('Manage product')}"></head>
 <body>
-<header th:replace="~{products/fragments :: header}"></header>
+<header th:replace="~{fragments :: siteHeader('inventory')}"></header>
 <main class="shell form-shell">
   <h1 class="section-title" th:text="${productId == null} ? 'Add product' : 'Edit product'"></h1>
   <p class="meta" th:text="|Stock at ${store.name}|"></p>

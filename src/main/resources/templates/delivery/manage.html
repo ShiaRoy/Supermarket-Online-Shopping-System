@@ -1,30 +1,16 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Bula Basket | Manage deliveries</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
   <link rel="stylesheet" th:href="@{/css/styles.css}" />
-  <style>
-    /* Column widths for the delivery table: narrow order number, roomy address and time columns, all left-aligned. */
-    .delivery-table .inventory-row { grid-template-columns: .5fr 1.6fr 1.3fr 1fr auto; text-align: left; }
-    .delivery-table .inventory-row > :nth-child(n) { display: block; }
-    .delivery-table .inventory-row > .inventory-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-    @media (max-width: 850px) {
-      .delivery-table .inventory-row { grid-template-columns: 1fr; gap: 6px; }
-    }
-  </style>
+  <link rel="stylesheet" th:href="@{/css/navigation.css}" />
 </head>
 <body>
-  <!-- NOTE: this staff page is not part of the supplied interface pages. It reuses the inventory
-       table styling so delivery staff can update status. Restrict it to STAFF/DELIVERY/ADMIN
-       roles once the Authentication module adds Spring Security. -->
-  <header class="site-header"><div class="header-inner">
-    <a class="brand" th:href="@{/}"><span class="brand-mark">B</span><span><strong>Bula Basket</strong><small>Fresh groceries around Suva</small></span></a>
-    <nav class="nav"><a th:href="@{/}">Home</a><a class="active" th:href="@{/delivery/manage}">Manage deliveries</a></nav>
-  </div></header>
-  <main><section class="shell">
+  <header th:replace="~{fragments :: siteHeader('delivery')}"></header>
+  <main><section class="shell delivery-management-shell">
     <div class="inventory-page-head"><div>
       <h1 class="section-title">Manage deliveries</h1>
       <p class="meta">Move each delivery to its next stage as it progresses.</p>
@@ -33,46 +19,49 @@
     <div class="delivery-note" th:if="${message}" th:text="${message}" style="margin-bottom:16px">Delivery status updated.</div>
     <div class="delivery-note" th:if="${error}" th:text="${error}" style="margin-bottom:16px;background:#fde3df;color:#a73525">Error</div>
 
-    <article class="inventory-card" style="margin-bottom:16px">
+    <article class="inventory-card delivery-create-card">
       <h2 style="margin-top:0">Create delivery</h2>
-      <form th:action="@{/delivery/create}" method="post" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
-        <label>Order number<br /><input type="number" name="orderId" min="1" required style="padding:10px 12px;border:1px solid #d9d2c3;border-radius:12px;font:inherit;width:140px" /></label>
-        <label>Delivery address<br /><input type="text" name="deliveryAddress" maxlength="255" required style="padding:10px 12px;border:1px solid #d9d2c3;border-radius:12px;font:inherit;width:260px" /></label>
-        <label>Expected from<br /><input type="datetime-local" name="expectedFrom" style="padding:10px 12px;border:1px solid #d9d2c3;border-radius:12px;font:inherit" /></label>
-        <label>Expected to<br /><input type="datetime-local" name="expectedTo" style="padding:10px 12px;border:1px solid #d9d2c3;border-radius:12px;font:inherit" /></label>
+      <form sec:authorize="hasAnyRole('STAFF', 'ADMIN')" th:action="@{/delivery/create}" method="post" class="delivery-create-form">
+        <label>Order number<input type="number" name="orderId" min="1" required /></label>
+        <label>Delivery address<input type="text" name="deliveryAddress" maxlength="255" required /></label>
+        <label>Expected from<input type="datetime-local" name="expectedFrom" /></label>
+        <label>Expected to<input type="datetime-local" name="expectedTo" /></label>
         <button type="submit" class="btn">Create delivery</button>
       </form>
     </article>
 
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+    <div class="delivery-status-filters">
       <a th:href="@{/delivery/manage}" th:class="${selected == null} ? 'btn btn-small' : 'btn btn-outline btn-small'">All</a>
       <a th:each="s : ${statuses}" th:href="@{/delivery/manage(status=${s.name()})}"
          th:class="${selected == s} ? 'btn btn-small' : 'btn btn-outline btn-small'" th:text="${s.label}">Confirmed</a>
     </div>
 
-    <article class="inventory-card">
+    <article class="delivery-list-card">
       <p class="meta" th:if="${#lists.isEmpty(deliveries)}">No deliveries to show.</p>
-      <div class="inventory-table delivery-table" th:unless="${#lists.isEmpty(deliveries)}">
-        <div class="inventory-row header"><div>Order</div><div>Address</div><div>Expected</div><div>Status</div><div>Actions</div></div>
-        <div class="inventory-row" th:each="d : ${deliveries}">
-          <div><strong th:text="'#' + ${d.orderId}">#1</strong></div>
-          <div><span th:text="${d.deliveryAddress}">Vuci Road, Nausori</span>
-            <br /><small class="meta" th:if="${d.assignedStaffId != null}" th:text="'Driver ID: ' + ${d.assignedStaffId}">Driver ID: 7</small></div>
-          <div th:text="${@deliveryDisplay.expectedWindow(d)}">Today, 2pm – 4pm</div>
-          <div><span th:class="${d.status.name() == 'DELIVERED'} ? 'status delivered' : 'status delivery'" th:text="${d.status.label}">Out for delivery</span></div>
-          <div class="inventory-actions">
+      <section class="delivery-records" th:unless="${#lists.isEmpty(deliveries)}">
+        <div class="delivery-record-head" role="row"><span>Order</span><span>Address</span><span>Expected time</span><span>Status</span><span>Driver</span><span>Actions</span></div>
+        <article class="delivery-record" th:each="d : ${deliveries}">
+          <div class="delivery-cell delivery-order" data-label="Order"><strong th:text="'#' + ${d.orderId}">#1</strong></div>
+          <div class="delivery-cell" data-label="Address"><span th:text="${d.deliveryAddress}">Vuci Road, Nausori</span></div>
+          <div class="delivery-cell" data-label="Expected time" th:text="${@deliveryDisplay.expectedWindow(d)}">Today, 2pm - 4pm</div>
+          <div class="delivery-cell" data-label="Status"><span th:class="${d.status.name() == 'DELIVERED'} ? 'status delivered' : 'status delivery'" th:text="${d.status.label}">Out for delivery</span></div>
+          <div class="delivery-cell delivery-driver" data-label="Driver">
+            <span th:text="${d.assignedStaffId != null} ? 'Driver ' + ${d.assignedStaffId} : 'Unassigned'">Unassigned</span>
+            <form class="delivery-driver-form" th:if="${d.status.next() != null}" sec:authorize="hasAnyRole('STAFF', 'ADMIN')" th:action="@{/delivery/{id}/driver(id=${d.id})}" method="post">
+              <span class="delivery-change-label" th:text="${d.assignedStaffId != null} ? 'Change:' : 'Assign:'">Change:</span>
+              <input type="number" name="staffId" min="1" th:value="${d.assignedStaffId}" placeholder="ID" aria-label="Driver ID" required />
+              <button type="submit" class="btn btn-outline btn-small">Assign</button>
+            </form>
+          </div>
+          <div class="delivery-cell delivery-actions" data-label="Actions">
             <form th:if="${d.status.next() != null}" th:action="@{/delivery/{id}/status(id=${d.id})}" method="post">
               <input type="hidden" name="status" th:value="${d.status.next().name()}" />
               <button type="submit" class="btn btn-small" th:text="'Mark as ' + ${d.status.next().label}">Mark as Packed</button>
             </form>
-            <span class="meta" th:unless="${d.status.next() != null}">Completed</span>
-            <form th:action="@{/delivery/{id}/driver(id=${d.id})}" method="post" style="display:flex;gap:6px;margin-top:6px">
-              <input type="number" name="staffId" min="1" th:value="${d.assignedStaffId}" placeholder="Driver ID" style="padding:6px 8px;border:1px solid #d9d2c3;border-radius:10px;font:inherit;width:100px" />
-              <button type="submit" class="btn btn-outline btn-small">Assign</button>
-            </form>
+            <span class="delivery-completed" th:unless="${d.status.next() != null}">Completed</span>
           </div>
-        </div>
-      </div>
+        </article>
+      </section>
     </article>
   </section></main>
   <footer>Bula Basket · Privacy policy · Contact us · © 2026, Suva, Fiji</footer>

@@ -1,7 +1,7 @@
 package com.soss.model;
 import jakarta.validation.constraints.*;
 public class CheckoutForm {
- @NotBlank @Size(max=300) private String address;
+ @NotBlank @Size(max=255) private String address;
  @NotBlank private String deliverySlot;
  @NotBlank private String paymentMethod;
  @NotBlank @Pattern(regexp="[0-9a-fA-F-]{36}") private String token;

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Access denied')}"></head>
+<body>
+<header th:replace="~{fragments :: siteHeader('')}"></header>
+<main class="auth-shell"><section class="auth-card">
+  <h1>Access unavailable</h1>
+  <p class="auth-subtitle">Your account does not have permission to open this page.</p>
+  <a class="btn" th:href="@{/}">Return home</a>
+</section></main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body></html>

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 //handle requests for the registration, login and user profiles.
 @Controller
@@ -47,4 +48,8 @@ public String adminArea(Model m) {
     m.addAttribute("area", "admin");
     return "auth/access";
 }
+
+ @GetMapping("/access-denied")
+ @ResponseStatus(HttpStatus.FORBIDDEN)
+ public String accessDenied(){return "auth/access-denied";}
 }

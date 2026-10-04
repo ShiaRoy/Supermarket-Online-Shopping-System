@@ -329,11 +329,10 @@ input {
   justify-content: space-between;
   align-items: center;
 }
-.search-layout {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 28px;
-}
+.search-layout { display: grid; gap: 22px; }
+.catalogue-filters { background: #fff; border-radius: 14px; box-shadow: var(--shadow); }
+.catalogue-filters summary { cursor: pointer; padding: 14px 18px; color: var(--teal); font-weight: 700; }
+.catalogue-filters .filters { box-shadow: none; border-radius: 0; border-top: 1px solid var(--line); }
 .filters,
 .panel {
   background: #fff;

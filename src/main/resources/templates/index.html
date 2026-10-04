@@ -412,62 +412,12 @@
             }
         }
     </style>
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
 </head>
 
 <body>
 
-<header class="site-header">
-
-    <div class="header-inner">
-
-        <a th:href="@{/}">
-            <img class="logo"
-                 th:src="@{/images/bula-basket-logo.png}"
-                 alt="Bula Basket logo">
-        </a>
-
-        <nav class="nav">
-
-            <a class="active" th:href="@{/}">Home</a>
-            <a th:href="@{/products}">Products</a>
-            <a th:href="@{/search}">Search</a>
-
-            <a sec:authorize="hasRole('CUSTOMER')"
-               th:href="@{/cart}">Cart</a>
-
-            <a sec:authorize="hasRole('CUSTOMER')"
-               th:href="@{/orders}">Orders</a>
-
-            <a sec:authorize="hasAnyRole('STAFF','ADMIN')"
-               th:href="@{/inventory}">Inventory</a>
-
-            <a sec:authorize="hasAnyRole('STAFF','ADMIN','DELIVERY')"
-               th:href="@{/delivery/manage}">Delivery</a>
-
-            <a sec:authorize="isAnonymous()"
-               th:href="@{/login}">Login</a>
-
-            <a sec:authorize="isAnonymous()"
-               th:href="@{/register}">Register</a>
-
-            <a sec:authorize="isAuthenticated()"
-               th:href="@{/profile}">Profile</a>
-
-            <form sec:authorize="isAuthenticated()"
-                  method="post"
-                  th:action="@{/logout}">
-
-                <button class="logout-button" type="submit">
-                    Log out
-                </button>
-
-            </form>
-
-        </nav>
-
-    </div>
-
-</header>
+<header th:replace="~{fragments :: siteHeader('home')}"></header>
 
 
 <main class="page">
@@ -498,7 +448,7 @@
                 </a>
 
                 <a class="btn btn-outline"
-                   th:href="@{/search}">
+                   th:href="@{/products}">
                     Find a product
                 </a>
 
@@ -537,31 +487,31 @@
 
         <div class="aisle-grid">
 
-            <a class="aisle-card" th:href="@{/products}">
+            <a class="aisle-card" th:href="@{/products(category='Dairy')}">
                 <div class="aisle-icon">🥛</div>
                 <strong>Dairy & breakfast</strong>
                 <span>Milk, cereal & essentials</span>
             </a>
 
-            <a class="aisle-card" th:href="@{/products}">
+            <a class="aisle-card" th:href="@{/products(category='Pantry')}">
                 <div class="aisle-icon">🍞</div>
                 <strong>Pantry</strong>
                 <span>Everyday staples</span>
             </a>
 
-            <a class="aisle-card" th:href="@{/products}">
+            <a class="aisle-card" th:href="@{/products(category='Snacks')}">
                 <div class="aisle-icon">🍪</div>
                 <strong>Snacks</strong>
                 <span>Biscuits & treats</span>
             </a>
 
-            <a class="aisle-card" th:href="@{/products}">
+            <a class="aisle-card" th:href="@{/products(category='Produce')}">
                 <div class="aisle-icon">🥬</div>
                 <strong>Fresh produce</strong>
                 <span>Fruit & vegetables</span>
             </a>
 
-            <a class="aisle-card" th:href="@{/products}">
+            <a class="aisle-card" th:href="@{/products(category='Beverages')}">
                 <div class="aisle-icon">🧃</div>
                 <strong>Beverages</strong>
                 <span>Juice & drinks</span>

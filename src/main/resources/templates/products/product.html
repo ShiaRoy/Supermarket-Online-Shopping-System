@@ -1,11 +1,16 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head th:replace="~{products/fragments :: head(${item.product.name})}"></head>
+
 <body>
 
-<header th:replace="~{products/fragments :: header}"></header>
+<header th:replace="~{fragments :: siteHeader('products')}"></header>
 
 <main class="shell">
+
   <a class="text-link"
      th:href="@{/products(storeId=${store.id})}">
     &larr; Products
@@ -14,36 +19,48 @@
   <div class="product-detail">
 
     <div class="product-visual detail-visual">
-      <span th:replace="~{products/fragments :: icon(${item.product.icon})}"></span>
+
+      <span th:replace="~{products/fragments :: icon(${item.product.icon}, ${item.product.category})}">
+      </span>
+
     </div>
 
     <div>
+
       <h1 class="section-title"
           th:text="${item.product.name}">
+        Product
       </h1>
 
       <p class="category"
          th:text="${item.product.category}">
+        Category
       </p>
 
       <p class="price"
          th:text="|FJ$ ${#numbers.formatDecimal(item.product.price,1,2)}|">
+        FJ$ 0.00
       </p>
 
       <p class="description"
          th:text="${item.product.description}">
+        Product description
       </p>
 
       <p>
         <span class="status"
               th:classappend="${item.statusClass}"
               th:text="${item.status}">
+          In stock
         </span>
       </p>
 
-      <p th:text="|${item.quantity} available at ${store.name}|"></p>
+      <p th:text="|${item.quantity} available at ${store.name}|">
+        Stock available
+      </p>
 
-      <form th:if="${item.quantity > 0}"
+      <form sec:authorize="hasRole('CUSTOMER')"
+            th:if="${item.quantity > 0}"
             th:action="@{/cart/quantity}"
             method="post">
 
@@ -55,6 +72,10 @@
                name="delta"
                value="1">
 
+        <input type="hidden"
+               name="returnTo"
+               th:value="|/products/${item.product.id}?storeId=${store.id}|">
+
         <button type="submit">
           Add to cart
         </button>
@@ -62,7 +83,15 @@
       </form>
 
     </div>
+
   </div>
+
+  <p class="catalogue-message"
+     th:if="${message}"
+     role="status"
+     th:text="${message}">
+  </p>
+
 </main>
 
 <footer th:replace="~{products/fragments :: footer}"></footer>

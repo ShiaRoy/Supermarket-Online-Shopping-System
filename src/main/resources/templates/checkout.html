@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Checkout')}"></head>
+<body>
+<header th:replace="~{fragments :: siteHeader('cart')}"></header>
+<main class="shop-container">
+  <div class="cart-page-head"><div><h1>Checkout</h1><p class="muted">Confirm delivery and payment details.</p></div><a class="btn btn-outline-success" th:href="@{/cart}">Back to cart</a></div>
+  <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+  <form th:action="@{/checkout}" method="post" th:object="${checkout}" class="row g-4">
+    <input type="hidden" th:field="*{token}">
+    <div class="col-lg-7"><section class="panel delivery"><h2>Delivery details</h2>
+      <label for="deliverySlot" class="form-label">Time slot</label><select id="deliverySlot" th:field="*{deliverySlot}" class="form-select" required><option value="">Choose a delivery time</option><option th:each="slot : ${slots}" th:value="${slot}" th:text="${slot}"></option></select>
+      <label for="address" class="form-label mt-3">Address</label><textarea id="address" th:field="*{address}" class="form-control" rows="3" maxlength="255" required placeholder="Street, suburb and city"></textarea>
+    </section></div>
+    <div class="col-lg-5"><section class="panel summary"><h2>Order summary</h2>
+      <div class="summary-row"><span>Subtotal</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.subtotal,1,2)}"></span></div><div class="summary-row"><span>Delivery fee</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.delivery,1,2)}"></span></div><div class="summary-row"><span>Promo discount</span><span th:text="'−FJ$ ' + ${#numbers.formatDecimal(basket.discount,1,2)}"></span></div><div class="summary-row total"><strong>Total</strong><strong th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.total,1,2)}"></strong></div>
+      <fieldset><legend>Pay with</legend><label class="payment" th:each="payment : ${payments}"><input type="radio" th:field="*{paymentMethod}" th:value="${payment}" required><span th:text="${payment}"></span></label></fieldset>
+      <div class="alert alert-danger" th:if="${#fields.hasAnyErrors()}"><p th:each="err : ${#fields.allErrors()}" th:text="${err}"></p></div>
+      <button class="place-order" th:disabled="${basket.lines.isEmpty()}">Place order</button><p class="payment-note">Payment is simulated for the Phase 1 checkout flow.</p>
+    </section></div>
+  </form>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body></html>

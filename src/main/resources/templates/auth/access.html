@@ -10,57 +10,12 @@
   <title>Bula Basket | Role access</title>
 
   <link rel="stylesheet" th:href="@{/css/auth.css}" />
+  <link rel="stylesheet" th:href="@{/css/navigation.css}" />
 </head>
 
 <body>
 
-<header class="site-header">
-  <div class="header-inner">
-
-    <a class="brand" th:href="@{/}">
-      <span class="brand-mark">B</span>
-
-      <span>
-        <strong>Bula Basket</strong>
-        <small>Fresh groceries around Suva</small>
-      </span>
-    </a>
-
-    <nav class="nav" aria-label="Account navigation">
-
-      <a th:href="@{/}">Home</a>
-
-      <a sec:authorize="isAnonymous()"
-         th:href="@{/login}">
-        Login
-      </a>
-
-      <a sec:authorize="isAnonymous()"
-         th:href="@{/register}">
-        Register
-      </a>
-
-      <a sec:authorize="isAuthenticated()"
-         th:href="@{/profile}">
-        Profile
-      </a>
-
-      <form sec:authorize="isAuthenticated()"
-            method="post"
-            th:action="@{/logout}"
-            style="display:inline;">
-
-        <button type="submit"
-                class="link-button">
-          Log out
-        </button>
-
-      </form>
-
-    </nav>
-
-  </div>
-</header>
+<header th:replace="~{fragments :: siteHeader('')}"></header>
 
 
 <main class="auth-shell">

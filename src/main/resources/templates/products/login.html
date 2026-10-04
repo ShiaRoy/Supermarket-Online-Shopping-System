@@ -2,11 +2,11 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{products/fragments :: head('Staff sign in')}"></head>
 <body>
-<header th:replace="~{products/fragments :: header}"></header>
+<header th:replace="~{fragments :: siteHeader('login')}"></header>
 <main class="auth-shell"><section class="auth-card"><h1>Staff sign in</h1>
   <p class="alert alert-danger" role="alert" th:if="${param.error}">Incorrect username or password.</p>
-  <form th:action="@{/inventory/login}" method="post" class="form-grid">
-    <div class="form-group"><label for="username">Username</label><input id="username" name="username" autocomplete="username" required></div>
+  <form th:action="@{/login}" method="post" class="form-grid">
+    <div class="form-group"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="username" required></div>
     <div class="form-group"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required></div>
     <button type="submit" class="btn auth-submit">Sign in</button>
   </form>

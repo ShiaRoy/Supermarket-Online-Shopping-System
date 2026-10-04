@@ -2,6 +2,11 @@ package com.soss.controller.delivery;
 
 import com.soss.model.delivery.Delivery;
 import com.soss.model.delivery.DeliveryStatus;
+import com.soss.model.Order;
+import com.soss.model.Role;
+import com.soss.model.User;
+import com.soss.service.AccountService;
+import com.soss.service.OrderService;
 import com.soss.service.delivery.DeliveryService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -16,6 +21,8 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDateTime;
+import java.security.Principal;
+import java.util.Objects;
 import java.util.NoSuchElementException;
 
 @Controller
@@ -23,19 +30,30 @@ import java.util.NoSuchElementException;
 public class DeliveryController {
 
     private final DeliveryService deliveryService;
+    private final OrderService orderService;
+    private final AccountService accountService;
 
-    public DeliveryController(DeliveryService deliveryService) {
+    public DeliveryController(
+            DeliveryService deliveryService,
+            OrderService orderService,
+            AccountService accountService) {
         this.deliveryService = deliveryService;
+        this.orderService = orderService;
+        this.accountService = accountService;
     }
 
     /** Order lookup: a customer types an order number and is taken to its tracking page. */
     @GetMapping("/track")
-    public String lookup(@RequestParam(required = false) Long orderId, Model model) {
+    public String lookup(
+            @RequestParam(required = false) Long orderId,
+            Principal principal,
+            Model model) {
         if (orderId == null) {
             return "delivery/lookup";
         }
+        requireTrackingAccess(orderId, principal);
         if (deliveryService.findByOrderId(orderId).isEmpty()) {
-            model.addAttribute("error", "No delivery found for order #" + orderId);
+            model.addAttribute("error", "Delivery tracking is not available for this order yet.");
             return "delivery/lookup";
         }
         return "redirect:/delivery/track/" + orderId;
@@ -43,10 +61,16 @@ public class DeliveryController {
 
     /** Customer view: "Track your grocery delivery" for one order. */
     @GetMapping("/track/{orderId}")
-    public String track(@PathVariable Long orderId, Model model) {
-        Delivery delivery = deliveryService.findByOrderId(orderId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "No delivery found for this order"));
+    public String track(
+            @PathVariable Long orderId,
+            Principal principal,
+            Model model) {
+        requireTrackingAccess(orderId, principal);
+        Delivery delivery = deliveryService.findByOrderId(orderId).orElse(null);
+        if (delivery == null) {
+            model.addAttribute("error", "Delivery tracking is not available for this order yet.");
+            return "delivery/lookup";
+        }
         model.addAttribute("delivery", delivery);
         model.addAttribute("steps", DeliveryStatus.values());
         return "delivery/track";
@@ -106,5 +130,27 @@ public class DeliveryController {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/delivery/manage";
+    }
+
+    private void requireTrackingAccess(Long orderId, Principal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login required");
+        }
+
+        User user = accountService.profile(principal.getName());
+        if (user.getRole() != Role.CUSTOMER) {
+            return;
+        }
+
+        Order order;
+        try {
+            order = orderService.getOrderById(orderId);
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found");
+        }
+
+        if (!Objects.equals(order.getCustomerId(), user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This is not your delivery.");
+        }
     }
 }

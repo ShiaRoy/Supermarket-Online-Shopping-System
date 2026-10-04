@@ -23,27 +23,44 @@ public class CartController {
         return user.getName();
     }
 
-    private void model(String owner, Model model) {
+    private void basketModel(String owner, Model model) {
         model.addAttribute("basket", carts.view(owner));
+    }
+
+    private void checkoutModel(String owner, Model model) {
+        basketModel(owner, model);
         model.addAttribute("slots", carts.slots());
         model.addAttribute("payments", CartService.PAYMENTS);
     }
 
     @GetMapping("/cart")
     public String cart(Principal user, Model model) {
-        model(owner(user), model);
+        basketModel(owner(user), model);
+        return "cart";
+    }
+
+    @GetMapping("/checkout")
+    public String checkoutPage(Principal user, Model model) {
+        String owner = owner(user);
+        checkoutModel(owner, model);
         CheckoutForm form = new CheckoutForm();
         form.setToken(((CartService.Basket)model.getAttribute("basket")).token());
         form.setPaymentMethod("M-PAiSA");
         model.addAttribute("checkout", form);
-        return "cart";
+        return "checkout";
     }
 
     @PostMapping("/cart/quantity")
-    public String quantity(Principal user, @RequestParam Long productId, @RequestParam int delta, RedirectAttributes flash) {
-        try { carts.change(owner(user), productId, delta); }
+    public String quantity(Principal user, @RequestParam Long productId, @RequestParam int delta,
+                           @RequestParam(required = false) String returnTo, RedirectAttributes flash) {
+        try {
+            carts.change(owner(user), productId, delta);
+            if (delta > 0) {
+                flash.addFlashAttribute("message", "Item added to your cart.");
+            }
+        }
         catch (IllegalArgumentException e) { flash.addFlashAttribute("error", e.getMessage()); }
-        return "redirect:/cart";
+        return "redirect:" + shoppingReturnTo(returnTo);
     }
 
     @PostMapping("/cart/promo")
@@ -63,8 +80,15 @@ public class CartController {
                 return "redirect:/orders/" + carts.place(owner, form).orderId() + "/confirmation";
             } catch (IllegalArgumentException e) { model.addAttribute("error", e.getMessage()); }
         }
-        model(owner, model);
+        checkoutModel(owner, model);
         form.setToken(((CartService.Basket)model.getAttribute("basket")).token());
-        return "cart";
+        return "checkout";
+    }
+
+    private String shoppingReturnTo(String returnTo) {
+        if (returnTo != null && returnTo.startsWith("/products") && !returnTo.startsWith("//")) {
+            return returnTo;
+        }
+        return "/cart";
     }
 }

@@ -2,13 +2,15 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{products/fragments :: head('Products')}"></head>
 <body data-page="home">
-<header th:replace="~{products/fragments :: header}"></header>
+<header th:replace="~{fragments :: siteHeader('products')}"></header>
 <main class="shell">
-  <h1 class="section-title">Bula Basket</h1>
-  <div class="search-head"><h2 class="section-title">From the catalogue</h2><span class="meta" th:text="|${#lists.size(items)} items|"></span></div>
+  <div class="search-head"><h1 class="section-title">Products</h1><span class="meta" th:text="|${#lists.size(items)} items|"></span></div>
+  <p class="catalogue-message" th:if="${message}" role="status" th:text="${message}"></p>
   <p th:if="${#lists.isEmpty(stores)}" class="empty-state">The catalogue is not available yet.</p>
   <div class="search-layout" th:unless="${#lists.isEmpty(stores)}">
-    <aside th:replace="~{products/fragments :: filters('/products')}"></aside>
+    <form class="catalogue-controls" method="get" th:action="@{/products}">
+      <div class="catalogue-toolbar"><label class="visually-hidden" for="catalogue-query">Search products</label><input id="catalogue-query" name="q" type="search" maxlength="120" th:value="${q}" placeholder="Search groceries..."><details class="catalogue-filters"><summary>Filters</summary><div th:replace="~{products/fragments :: filters}"></div></details><button class="visually-hidden" type="submit">Search</button></div>
+    </form>
     <div th:replace="~{products/fragments :: cards}"></div>
   </div>
 </main>

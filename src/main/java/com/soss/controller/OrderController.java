@@ -4,6 +4,7 @@ import com.soss.model.Order;
 import com.soss.model.OrderItem;
 import com.soss.model.OrderStatus;
 import com.soss.model.Payment;
+import com.soss.model.User;
 import com.soss.service.AccountService;
 import com.soss.service.OrderService;
 import com.soss.service.PaymentService;
@@ -19,7 +20,9 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -31,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Controller
 @RequestMapping("/orders")
@@ -75,8 +79,8 @@ public class OrderController {
      */
     @ResponseBody
     @GetMapping("/{orderId}")
-    public OrderResponse getOrder(@PathVariable Long orderId) {
-        return toResponse(orderService.getOrderById(orderId));
+    public OrderResponse getOrder(@PathVariable Long orderId, Principal principal) {
+        return toResponse(requireOwnedOrder(orderId, principal));
     }
 
     /*
@@ -85,7 +89,10 @@ public class OrderController {
     @ResponseBody
     @GetMapping("/customer/{customerId}")
     public List<OrderResponse> getCustomerOrders(
-            @PathVariable Long customerId) {
+            @PathVariable Long customerId,
+            Principal principal) {
+
+        requireCurrentCustomer(customerId, principal);
 
         return orderService
                 .getOrdersByCustomerId(customerId)
@@ -100,11 +107,20 @@ public class OrderController {
     @ResponseBody
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(
-            @Valid @RequestBody CreateOrderRequest request) {
+            @Valid @RequestBody CreateOrderRequest request,
+            Principal principal) {
+
+        User customer = currentCustomer(principal);
+        if (!Objects.equals(customer.getId(), request.customerId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Orders can only be created for the signed-in customer."
+            );
+        }
 
         Order order = new Order();
 
-        order.setCustomerId(request.customerId());
+        order.setCustomerId(customer.getId());
 
         for (OrderItemRequest requestedItem : request.items()) {
 
@@ -131,7 +147,10 @@ public class OrderController {
     @GetMapping("/customer/{customerId}/view")
     public String viewCustomerOrders(
             @PathVariable Long customerId,
+            Principal principal,
             Model model) {
+
+        requireCurrentCustomer(customerId, principal);
 
         model.addAttribute(
                 "orders",
@@ -149,9 +168,10 @@ public class OrderController {
     @GetMapping("/{orderId}/confirmation")
     public String viewOrderConfirmation(
             @PathVariable Long orderId,
+            Principal principal,
             Model model) {
 
-        Order order = orderService.getOrderById(orderId);
+        Order order = requireOwnedOrder(orderId, principal);
 
         Payment latestPayment = paymentService
                 .getPaymentsByOrderId(orderId)
@@ -181,7 +201,7 @@ public class OrderController {
      * API error response.
      */
     @ResponseBody
-    @ExceptionHandler(IllegalArgumentException.class)
+    @ExceptionHandler(value = IllegalArgumentException.class, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleInvalidOrder(
             IllegalArgumentException exception) {
@@ -190,6 +210,21 @@ public class OrderController {
                 "error",
                 exception.getMessage()
         );
+    }
+
+    @ResponseBody
+    @ExceptionHandler(value = ResponseStatusException.class, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> handleApiStatus(
+            ResponseStatusException exception) {
+
+        String message = exception.getReason() == null
+                ? "Order request failed."
+                : exception.getReason();
+
+        return ResponseEntity
+                .status(exception.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("error", message));
     }
 
     private OrderResponse toResponse(Order order) {
@@ -201,6 +236,30 @@ public class OrderController {
                 order.getTotalAmount(),
                 order.getStatus()
         );
+    }
+
+    private User currentCustomer(Principal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login required.");
+        }
+        return accountService.profile(principal.getName());
+    }
+
+    private void requireCurrentCustomer(Long customerId, Principal principal) {
+        if (!Objects.equals(currentCustomer(principal).getId(), customerId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This is not your order history.");
+        }
+    }
+
+    private Order requireOwnedOrder(Long orderId, Principal principal) {
+        Order order;
+        try {
+            order = orderService.getOrderById(orderId);
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found");
+        }
+        requireCurrentCustomer(order.getCustomerId(), principal);
+        return order;
     }
 
     public record CreateOrderRequest(
