@@ -2,6 +2,7 @@ package com.soss.controller.product;
 
 import com.soss.model.*;
 import com.soss.service.CatalogueService;
+import com.soss.service.PromotionService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -10,7 +11,8 @@ import java.math.BigDecimal;
 @Controller
 public class CatalogueController {
     private final CatalogueService service;
-    public CatalogueController(CatalogueService service) { this.service = service; }
+    private final PromotionService promotions;
+    public CatalogueController(CatalogueService service, PromotionService promotions) { this.service = service; this.promotions = promotions; }
     @GetMapping({"/products", "/search"})
     String catalogue(@RequestParam(required = false) Long storeId,
         @RequestParam(defaultValue = "") String q,
@@ -28,7 +30,11 @@ public class CatalogueController {
         }
         Store store = service.store(storeId);
         model.addAttribute("store", store); model.addAttribute("stores", service.stores());
-        model.addAttribute("items", service.search(store.getId(), q, category, min, max, availability, false));
+        var prices = promotions.activePrices();
+        model.addAttribute("promotionPrices", prices);
+        model.addAttribute("items", service.search(store.getId(), q, category, null, null, availability, false).stream()
+            .filter(i -> min == null || prices.getOrDefault(i.getProduct().getId(), i.getProduct().getPrice()).compareTo(min) >= 0)
+            .filter(i -> max == null || prices.getOrDefault(i.getProduct().getId(), i.getProduct().getPrice()).compareTo(max) <= 0).toList());
         model.addAttribute("categories", service.categories(store.getId(), false));
         model.addAttribute("q", q); model.addAttribute("category", category);
         model.addAttribute("min", min); model.addAttribute("max", max);
@@ -40,6 +46,7 @@ public class CatalogueController {
         Store store = service.store(storeId);
         model.addAttribute("store", store);
         model.addAttribute("item", service.detail(id, store.getId(), false));
+        model.addAttribute("promotionPrices", promotions.activePrices());
         return "products/product";
     }
 }

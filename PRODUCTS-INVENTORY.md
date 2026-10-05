@@ -1,5 +1,8 @@
 # Products and Inventory (Divit, Phase 1)
 
+For the updated Phase 2 behavior and current shared-login integration, see
+[PHASE2-PRODUCTS.md](PHASE2-PRODUCTS.md). The remainder documents the original Phase 1 module.
+
 The module uses the team's Java 25, Spring Boot 3.5.16, Maven, MySQL, JPA,
 Thymeleaf and Bootstrap setup. Entity names are unchanged: `Product`, `Store`,
 and `Inventory`. Classes follow the existing `com.soss` layer packages.
