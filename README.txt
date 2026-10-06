@@ -176,7 +176,7 @@ soss/
 ├── pom.xml
 ├── nbactions.xml
 ├── .gitignore
-├── README.md
+├── README.txt
 └── src/main/
     ├── java/com/soss/
     │   ├── SossApplication.java
