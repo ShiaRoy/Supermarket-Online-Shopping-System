@@ -101,9 +101,7 @@ public class DeliveryService {
             if (status == DeliveryStatus.OUT_FOR_DELIVERY || status == DeliveryStatus.DELIVERED) {
                 throw new IllegalStateException("This order can no longer be cancelled because delivery is in progress.");
             }
-            if (status != DeliveryStatus.CANCELLED) {
-                delivery.setStatus(DeliveryStatus.CANCELLED);
-            }
+            deliveryRepository.delete(delivery);
         });
     }
 }

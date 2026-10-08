@@ -9,8 +9,7 @@ public enum DeliveryStatus {
     CONFIRMED("Confirmed", "Your order has been confirmed."),
     PACKED("Packed", "Your groceries have been packed by store staff."),
     OUT_FOR_DELIVERY("Out for delivery", "Your driver is on the way."),
-    DELIVERED("Delivered", "Order will be marked delivered after handover."),
-    CANCELLED("Cancelled", "This delivery was cancelled with the order.");
+    DELIVERED("Delivered", "Order will be marked delivered after handover.");
 
     private final String label;
     private final String description;

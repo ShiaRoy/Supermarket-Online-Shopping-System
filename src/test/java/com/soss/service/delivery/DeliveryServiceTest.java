@@ -148,7 +148,7 @@ class DeliveryServiceTest {
 
         service.cancelForOrder(1L);
 
-        assertEquals(DeliveryStatus.CANCELLED, confirmed.getStatus());
+        verify(repository).delete(confirmed);
 
         Delivery inProgress = deliveryWithStatus(DeliveryStatus.OUT_FOR_DELIVERY);
         when(repository.lockByOrderId(2L)).thenReturn(Optional.of(inProgress));

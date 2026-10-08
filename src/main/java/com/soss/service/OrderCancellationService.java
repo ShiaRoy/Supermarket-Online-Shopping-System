@@ -63,8 +63,7 @@ public class OrderCancellationService {
         }
         return deliveryService.findByOrderId(order.getId())
                 .map(delivery -> delivery.getStatus() != com.soss.model.delivery.DeliveryStatus.OUT_FOR_DELIVERY
-                        && delivery.getStatus() != com.soss.model.delivery.DeliveryStatus.DELIVERED
-                        && delivery.getStatus() != com.soss.model.delivery.DeliveryStatus.CANCELLED)
+                        && delivery.getStatus() != com.soss.model.delivery.DeliveryStatus.DELIVERED)
                 .orElse(true);
     }
 

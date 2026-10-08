@@ -217,7 +217,7 @@ class CheckoutIntegrationTest {
 
         assertThat(orderService.getOrderById(order.getId()).getStatus()).isEqualTo(OrderStatus.CANCELLED);
         assertThat(catalogue.detail(productId, storeId, true).getQuantity()).isEqualTo(10);
-        assertThat(deliveries.findByOrderId(order.getId()).orElseThrow().getStatus()).isEqualTo(DeliveryStatus.CANCELLED);
+        assertThat(deliveries.findByOrderId(order.getId())).isEmpty();
         assertThat(payments.findByOrderId(order.getId()))
                 .extracting(Payment::getStatus)
                 .containsExactlyInAnyOrder(PaymentStatus.SUCCESS, PaymentStatus.REFUNDED);
