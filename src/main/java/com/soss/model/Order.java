@@ -38,6 +38,7 @@ public class Order {
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 30, columnDefinition = "varchar(30)")
     private OrderStatus status = OrderStatus.PENDING_PAYMENT;
 
     /** Set by checkout only after stock has been successfully deducted. */

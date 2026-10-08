@@ -28,6 +28,7 @@ public class Payment {
     private LocalDateTime paymentDate;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20, columnDefinition = "varchar(20)")
     private PaymentStatus status = PaymentStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
