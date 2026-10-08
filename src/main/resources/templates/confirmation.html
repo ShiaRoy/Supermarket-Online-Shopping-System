@@ -13,6 +13,7 @@
     />
     <link rel="stylesheet" href="/css/styles.css" th:href="@{/css/styles.css}" />
     <link rel="stylesheet" th:href="@{/css/navigation.css}" />
+    <link rel="stylesheet" th:href="@{/css/orders-payments.css}" />
   </head>
   <body data-page="confirmation">
     <header th:replace="~{fragments :: siteHeader('orders')}"></header>
@@ -24,7 +25,7 @@
           <span th:text="|Order #${order.id}|"></span> &middot;
           <span th:text="${order.orderDate != null ? #temporals.format(order.orderDate, 'dd MMM yyyy, h:mm a') : 'Date not available'}"></span>
         </p>
-        <div class="panel" th:if="${order.status.name() == 'CANCELLED'}" style="text-align: left">
+        <div class="panel cancellation-panel" th:if="${order.status.name() == 'CANCELLED'}">
           <h2>Cancellation confirmed</h2>
           <p class="confirmation-sub">This order will not be delivered.</p>
           <p class="confirmation-sub" th:if="${payment != null and payment.status.name() == 'REFUNDED'}">Your simulated refund has been recorded.</p>
@@ -47,7 +48,7 @@
             Delivered
           </div>
         </div>
-        <div class="panel" style="text-align: left">
+        <div class="panel confirmation-details">
           <h2>Order details</h2>
           <div class="detail-line">
             <span>Order ID</span><span th:text="|#${order.id}|"></span>
@@ -60,7 +61,7 @@
             <span th:text="${payment != null and payment.status != null ? payment.status : 'No payment recorded'}"></span>
           </div>
         </div>
-        <div class="panel order-items" style="margin-top: 16px">
+        <div class="panel order-items confirmation-details">
           <h2 th:text="${payment != null and payment.status.name() == 'REFUNDED'} ? 'Refund details' : 'Payment details'">Payment details</h2>
           <div class="detail-line">
             <span th:text="${payment != null and payment.status.name() == 'REFUNDED'} ? 'Refund reference' : 'Transaction reference'">Transaction reference</span>

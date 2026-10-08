@@ -260,6 +260,7 @@ class WebFlowTest {
         mvc.perform(get("/orders").with(customerUser(CUSTOMER_EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("CANCELLED")))
+                .andExpect(content().string(containsString("orders-page")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(
                         containsString("/delivery/track/" + order.getId()))));
         mvc.perform(get("/orders/" + order.getId() + "/confirmation")
@@ -267,10 +268,14 @@ class WebFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Cancellation confirmed")))
                 .andExpect(content().string(containsString("Refund details")))
+                .andExpect(content().string(containsString("confirmation-details")))
                 .andExpect(content().string(containsString("FJ$")));
         mvc.perform(get("/payment-history").with(customerUser(CUSTOMER_EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Simulated refund")))
+                .andExpect(content().string(containsString("Refund for payment #")))
+                .andExpect(content().string(containsString("payment-history-table")))
+                .andExpect(content().string(containsString("payment-status--refunded")))
                 .andExpect(content().string(containsString("REFUNDED")));
     }
 

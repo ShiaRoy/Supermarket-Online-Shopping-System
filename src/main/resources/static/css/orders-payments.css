@@ -1,0 +1,179 @@
+/* Scoped presentation for the Phase 2 Orders and Payments pages. */
+.payment-history-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 48px 24px 24px;
+}
+
+.payment-history-page .payment-page-head,
+.orders-page .orders-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.payment-history-page .payment-page-head h1,
+.orders-page .orders-top h1 {
+  margin: 0 0 7px;
+  color: #064c47;
+}
+
+.payment-history-page .payment-page-head .btn { flex: 0 0 auto; }
+
+.payment-history-card {
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid #e8ded3;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(38, 75, 60, 0.08);
+}
+
+.payment-history-empty { margin: 0; padding: 34px; text-align: center; }
+.payment-table-scroll { max-width: 100%; overflow-x: auto; }
+
+.payment-history-table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.payment-history-table th,
+.payment-history-table td {
+  padding: 16px 18px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.payment-history-table th {
+  border-bottom: 1px solid #e8ded3;
+  background: #f7fbf8;
+  color: #876e5b;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.payment-history-table td {
+  border-bottom: 1px solid #f0e8df;
+  color: #17362e;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.payment-history-table tbody tr:last-child td { border-bottom: 0; }
+.payment-history-table tbody tr:hover { background: #fffdf9; }
+.payment-history-table th:nth-child(1) { width: 12%; }
+.payment-history-table th:nth-child(2) { width: 18%; }
+.payment-history-table th:nth-child(3) { width: 15%; }
+.payment-history-table th:nth-child(4) { width: 20%; }
+.payment-history-table th:nth-child(5) { width: 14%; }
+.payment-history-table th:nth-child(6) { width: 21%; }
+
+.payment-history-table a {
+  color: #0d786b;
+  font-weight: 700;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.payment-type,
+.payment-description { display: grid; gap: 5px; }
+
+.payment-type { font-weight: 700; }
+.payment-description { color: #876e5b; font-size: 13px; }
+.payment-amount { color: #064c47; font-weight: 700; white-space: nowrap; }
+
+.payment-status {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.payment-status--success { background: #ddf4e5; color: #147240; }
+.payment-status--refunded { background: #e1f1ee; color: #0b6258; }
+.payment-status--failed { background: #fbe3df; color: #ad3c2f; }
+.payment-status--pending { background: #fff0cb; color: #946000; }
+
+.confirmation .cancellation-panel { margin-top: 28px; text-align: left; }
+.confirmation .cancellation-panel + .confirmation-details { margin-top: 16px; }
+.confirmation .confirmation-details { display: grid; gap: 0; text-align: left; }
+.confirmation .confirmation-details h2 { margin-bottom: 5px; }
+.confirmation .detail-line {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.7fr) minmax(0, 1.3fr);
+  gap: 18px;
+  align-items: start;
+  margin: 0;
+  padding: 13px 0;
+  border-bottom: 1px solid #eee4da;
+}
+
+.confirmation .detail-line:last-child { border-bottom: 0; }
+.confirmation .detail-line > :first-child { color: #876e5b; font-size: 14px; font-weight: 700; }
+.confirmation .detail-line > :last-child { min-width: 0; color: #17362e; overflow-wrap: anywhere; text-align: right; }
+.confirmation .detail-line > :last-child .payment-status { margin-left: auto; }
+.confirmation .paid { margin-top: 4px; padding-top: 16px; }
+.confirmation .paid > :last-child { color: #064c47; }
+
+.orders-page { max-width: 1120px; margin: 0 auto; padding: 48px 24px 24px; }
+.orders-page .orders-top { align-items: center; }
+.orders-page .orders-top > div:first-child { margin-right: auto; }
+.orders-page .orders-top .btn { flex: 0 0 auto; }
+.orders-page .order-card { margin-bottom: 16px; padding: 22px 24px; }
+.orders-page .order-card > div:first-child { min-width: 0; }
+.orders-page .order-actions { justify-content: flex-end; }
+.orders-page .order-actions form { margin: 0; }
+.orders-page .order-actions .btn { white-space: nowrap; }
+
+@media (max-width: 760px) {
+  .payment-history-page,
+  .orders-page { padding: 36px 16px 18px; }
+
+  .payment-history-page .payment-page-head,
+  .orders-page .orders-top { align-items: stretch; flex-direction: column; }
+
+  .payment-history-page .payment-page-head .btn,
+  .orders-page .orders-top .btn { width: fit-content; }
+
+  .payment-history-table { min-width: 0; }
+  .payment-history-table,
+  .payment-history-table tbody,
+  .payment-history-table tr,
+  .payment-history-table td { display: block; width: 100%; }
+  .payment-history-table thead { display: none; }
+  .payment-history-table tbody { display: grid; gap: 12px; padding: 12px; }
+  .payment-history-table tr { overflow: hidden; border: 1px solid #e8ded3; border-radius: 14px; background: #fffdf9; }
+  .payment-history-table td { display: grid; grid-template-columns: minmax(100px, 0.7fr) minmax(0, 1.3fr); gap: 12px; padding: 10px 14px; border-bottom: 1px solid #f0e8df; }
+  .payment-history-table td::before { content: attr(data-label); color: #876e5b; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .payment-history-table tbody tr:last-child td:last-child { border-bottom: 0; }
+  .payment-status-cell { justify-items: start; }
+
+  .confirmation .detail-line { grid-template-columns: 1fr; gap: 5px; }
+  .confirmation .detail-line > :last-child { text-align: left; }
+  .confirmation .detail-line > :last-child .payment-status { margin-left: 0; }
+  .confirmation .actions { margin-top: 24px; }
+
+  .orders-page .order-card { padding: 20px; }
+  .orders-page .order-actions { justify-content: flex-start; }
+}
+
+@media (max-width: 430px) {
+  .payment-history-page .payment-page-head .btn,
+  .orders-page .orders-top .btn { width: 100%; text-align: center; }
+  .orders-page .order-actions .btn,
+  .orders-page .order-actions form { flex: 1 1 100%; }
+  .orders-page .order-actions .btn,
+  .orders-page .order-actions button { width: 100%; text-align: center; }
+}
