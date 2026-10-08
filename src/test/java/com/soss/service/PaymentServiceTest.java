@@ -140,6 +140,18 @@ class PaymentServiceTest {
     }
 
     @Test
+    void paymentHistoryReturnsOnlyPaymentsForTheProvidedCustomerOrders() {
+        Payment payment = new Payment();
+        payment.setOrderId(20L);
+        when(paymentRepository.findByOrderIdInOrderByPaymentDateDesc(List.of(20L, 21L)))
+                .thenReturn(List.of(payment));
+
+        assertThat(paymentService.getPaymentHistory(List.of(20L, 21L))).containsExactly(payment);
+        assertThat(paymentService.getPaymentHistory(List.of())).isEmpty();
+        verify(paymentRepository).findByOrderIdInOrderByPaymentDateDesc(List.of(20L, 21L));
+    }
+
+    @Test
     void findPaymentByTransactionReferenceReturnsMatchingPayment() {
         String reference = "81bdd1ad-7019-4b02-b24d-ced4869601bc";
         Payment payment = new Payment();

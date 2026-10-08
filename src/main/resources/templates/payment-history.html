@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Payment history')}"></head>
+<body>
+<header th:replace="~{fragments :: siteHeader('orders')}"></header>
+<main class="shell">
+  <div class="cart-page-head">
+    <div><h1 class="section-title">Payment history</h1><p class="meta">Payments and simulated refunds for your orders.</p></div>
+    <a class="btn btn-outline" th:href="@{/orders}">Back to orders</a>
+  </div>
+  <section class="delivery-list-card">
+    <p class="meta" th:if="${#lists.isEmpty(payments)}">No payment activity yet.</p>
+    <div class="delivery-records" th:unless="${#lists.isEmpty(payments)}">
+      <div class="delivery-record-head"><span>Order</span><span>Date</span><span>Method</span><span>Type</span><span>Amount</span><span>Status</span></div>
+      <article class="delivery-record" th:each="payment : ${payments}">
+        <div class="delivery-cell" data-label="Order"><a th:href="@{/orders/{id}/confirmation(id=${payment.orderId})}" th:text="|Order #${payment.orderId}|">Order #1</a></div>
+        <div class="delivery-cell" data-label="Date" th:text="${payment.paymentDate != null ? #temporals.format(payment.paymentDate, 'dd MMM yyyy, h:mm a') : 'Date unavailable'}">Date</div>
+        <div class="delivery-cell" data-label="Method" th:text="${payment.paymentMethod != null ? payment.paymentMethod : 'Simulated checkout'}">M-PAiSA</div>
+        <div class="delivery-cell" data-label="Type" th:text="${payment.transactionType}">PAYMENT</div>
+        <div class="delivery-cell" data-label="Amount" th:text="|FJ$ ${#numbers.formatDecimal(payment.amount, 1, 'COMMA', 2, 'POINT')}|">FJ$ 0.00</div>
+        <div class="delivery-cell" data-label="Status"><span class="status" th:text="${payment.status}">SUCCESS</span></div>
+      </article>
+    </div>
+  </section>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body></html>

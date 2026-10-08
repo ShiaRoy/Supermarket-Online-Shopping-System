@@ -9,6 +9,7 @@ import com.soss.repository.PaymentRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import com.soss.model.PaymentTransactionType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,11 @@ public class PaymentService {
 
     @Transactional
     public Payment simulatePayment(Long orderId, boolean shouldSucceed) {
+        return simulatePayment(orderId, shouldSucceed, null);
+    }
+
+    @Transactional
+    public Payment simulatePayment(Long orderId, boolean shouldSucceed, String paymentMethod) {
         if (orderId == null) {
             throw new IllegalArgumentException("Order ID must not be null");
         }
@@ -41,6 +47,8 @@ public class PaymentService {
         payment.setOrderId(orderId);
         payment.setAmount(order.getTotalAmount());
         payment.setTransactionReference(UUID.randomUUID().toString());
+        payment.setTransactionType(PaymentTransactionType.PAYMENT);
+        payment.setPaymentMethod(paymentMethod);
 
         if (shouldSucceed) {
             payment.setStatus(PaymentStatus.SUCCESS);
@@ -62,6 +70,14 @@ public class PaymentService {
             throw new IllegalArgumentException("Order ID must not be null");
         }
         return paymentRepository.findByOrderId(orderId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Payment> getPaymentHistory(List<Long> orderIds) {
+        if (orderIds == null || orderIds.isEmpty()) {
+            return List.of();
+        }
+        return paymentRepository.findByOrderIdInOrderByPaymentDateDesc(orderIds);
     }
 
     @Transactional(readOnly = true)

@@ -30,6 +30,16 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     private PaymentStatus status = PaymentStatus.PENDING;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentTransactionType transactionType = PaymentTransactionType.PAYMENT;
+
+    @Column(length = 40)
+    private String paymentMethod;
+
+    /** Links a simulated refund to the successful payment it reverses. */
+    private Long relatedPaymentId;
+
     private String transactionReference;
 
     private String failureReason;
@@ -82,6 +92,30 @@ public class Payment {
 
     public void setStatus(PaymentStatus status) {
         this.status = status;
+    }
+
+    public PaymentTransactionType getTransactionType() {
+        return transactionType;
+    }
+
+    public void setTransactionType(PaymentTransactionType transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    public Long getRelatedPaymentId() {
+        return relatedPaymentId;
+    }
+
+    public void setRelatedPaymentId(Long relatedPaymentId) {
+        this.relatedPaymentId = relatedPaymentId;
     }
 
     public String getTransactionReference() {
