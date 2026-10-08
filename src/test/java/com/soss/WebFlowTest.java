@@ -181,6 +181,7 @@ class WebFlowTest {
         mvc.perform(get("/checkout").with(customer))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("id=\"site-search\""))))
+                .andExpect(content().string(containsString("name=\"_csrf\"")))
                 .andExpect(content().string(containsString("Delivery details")))
                 .andExpect(content().string(containsString("Pay with")));
     }
