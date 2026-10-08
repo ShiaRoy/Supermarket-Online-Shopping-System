@@ -45,10 +45,7 @@ public class CartService {
     }
 
     public List<String> slots() {
-        LocalDate today = LocalDate.now(ZoneId.of("Pacific/Fiji"));
-        return List.of(today.plusDays(1) + " | 10am – 12pm",
-                       today.plusDays(1) + " | 2pm – 4pm",
-                       today.plusDays(2) + " | 2pm – 4pm");
+        return new CartSlots().available();
     }
 
     @Transactional
@@ -64,6 +61,9 @@ public class CartService {
     private Basket calculate(Cart cart) {
         List<Line> lines = new ArrayList<>();
         cart.quantities.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+            if (entry.getKey() == null || entry.getKey() <= 0 || entry.getValue() == null
+                    || entry.getValue() < 1 || entry.getValue() > 99)
+                throw new IllegalArgumentException("Quantity must be between 1 and 99.");
             var p = product(entry.getKey());
             BigDecimal price = p.price().setScale(2, RoundingMode.UNNECESSARY);
             lines.add(new Line(p.id(), p.name(), p.icon(), entry.getValue(),
@@ -71,9 +71,7 @@ public class CartService {
         });
         BigDecimal subtotal = lines.stream().map(Line::total).reduce(new BigDecimal("0.00"), BigDecimal::add);
         BigDecimal delivery = new BigDecimal(lines.isEmpty() ? "0.00" : "3.00");
-        BigDecimal discount = "BULA10".equals(cart.promo)
-            ? subtotal.multiply(new BigDecimal("0.10")).setScale(2, RoundingMode.HALF_UP)
-            : new BigDecimal("0.00");
+        BigDecimal discount = PromoCodes.discount(cart.promo, subtotal, delivery);
         return new Basket(List.copyOf(lines), subtotal, delivery, discount, subtotal.add(delivery).subtract(discount),
             cart.promo, cart.checkoutToken, lines.size());
     }
@@ -94,29 +92,36 @@ public class CartService {
     @Transactional
     public void promo(String owner, String code) {
         Cart cart = locked(owner);
-        String normalized = code == null ? "" : code.strip().toUpperCase(Locale.ROOT);
-        if (!normalized.isEmpty() && !"BULA10".equals(normalized))
-            throw new IllegalArgumentException("Promo code is not valid.");
-        cart.promo = normalized.isEmpty() ? null : normalized;
+        String normalized = PromoCodes.normalize(code);
+        Basket basket = calculate(cart);
+        PromoCodes.discount(normalized, basket.subtotal(), basket.delivery());
+        PromoCodes.requireEligible(normalized, basket.subtotal());
+        if (Objects.equals(cart.promo, normalized)) return;
+        cart.promo = normalized;
         cart.checkoutToken = UUID.randomUUID().toString();
     }
 
     @Transactional
     public CheckoutOrders.Receipt place(String owner, CheckoutForm form) {
+        if (form == null) throw new IllegalArgumentException("Checkout details are required.");
+        if (form.getToken() == null || !form.getToken().matches(
+                "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))
+            throw new IllegalArgumentException("A valid checkout token is required.");
         Cart cart = locked(owner);
         var existing = orders.findExisting(owner, form.getToken());
         if (existing.isPresent()) return existing.get();
         if (!cart.checkoutToken.equals(form.getToken()))
             throw new IllegalArgumentException("Your basket changed. Review it and place the order again.");
-        if (form.getAddress() == null || form.getAddress().isBlank() || form.getAddress().length() > 255)
+        if (form.getAddress() == null || form.getAddress().strip().isBlank() || form.getAddress().length() > 255)
             throw new IllegalArgumentException("Enter a delivery address (maximum 255 characters).");
-        if (!slots().contains(form.getDeliverySlot())) throw new IllegalArgumentException("Choose an available delivery time.");
-        if (!PAYMENTS.contains(form.getPaymentMethod())) throw new IllegalArgumentException("Choose a payment method.");
+        if (form.getDeliverySlot() == null || !slots().contains(form.getDeliverySlot())) throw new IllegalArgumentException("Choose an available delivery time.");
+        if (form.getPaymentMethod() == null || !PAYMENTS.contains(form.getPaymentMethod())) throw new IllegalArgumentException("Choose a payment method.");
         for (Long id : cart.quantities.keySet()) {
             if (!product(id).active()) throw new IllegalArgumentException("A product is unavailable. Remove it before checkout.");
         }
         Basket basket = calculate(cart);
         if (basket.lines().isEmpty()) throw new IllegalArgumentException("Your basket is empty.");
+        PromoCodes.requireEligible(cart.promo, basket.subtotal());
         var items = basket.lines().stream().map(line -> new CheckoutOrders.Item(
             line.id(), line.name(), line.quantity(), line.unitPrice(), line.total())).toList();
         var request = new CheckoutOrders.Request(owner, cart.checkoutToken, form.getAddress().strip(),

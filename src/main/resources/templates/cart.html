@@ -22,7 +22,10 @@
     <div class="col-lg-5"><section class="panel summary"><h2>Cart summary</h2>
       <div class="summary-row"><span>Subtotal</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.subtotal,1,2)}"></span></div>
       <form th:action="@{/cart/promo}" method="post" class="promo"><label for="code" class="visually-hidden">Promo code</label><input id="code" name="code" maxlength="32" th:value="${basket.promo}" placeholder="Enter code" class="form-control"><button class="btn apply">Apply</button></form>
-      <small class="muted">Use BULA10 for 10% off groceries. Clear the code to remove it.</small>
+      <small class="muted">BULA10: 10% off groceries. SAVE5: FJ$ 5 off groceries over FJ$ 50 (inclusive). FREEDEL: free delivery over FJ$ 30 (inclusive). One code per cart; clear it to remove it.</small>
+      <div class="summary-row"><span>Delivery fee</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.delivery,1,2)}"></span></div>
+      <div class="summary-row"><span>Discount total</span><span th:text="'−FJ$ ' + ${#numbers.formatDecimal(basket.discount,1,2)}"></span></div>
+      <small class="muted" th:if="${basket.promo != null and basket.discount.signum() == 0}">The applied code is no longer eligible. Add groceries or remove the code before checkout.</small>
       <div class="summary-row total"><strong>Estimated total</strong><strong th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.total,1,2)}"></strong></div>
       <a class="place-order cart-checkout-link" th:classappend="${basket.lines.isEmpty()} ? 'disabled' : ''" th:href="@{/checkout}">Proceed to checkout</a>
     </section></div>
