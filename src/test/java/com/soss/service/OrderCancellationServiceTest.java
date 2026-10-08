@@ -4,6 +4,7 @@ import com.soss.model.Order;
 import com.soss.model.OrderItem;
 import com.soss.model.OrderStatus;
 import com.soss.model.Store;
+import com.soss.model.delivery.Delivery;
 import com.soss.repository.OrderRepository;
 import com.soss.service.delivery.DeliveryService;
 import java.math.BigDecimal;
@@ -99,12 +100,32 @@ class OrderCancellationServiceTest {
         Order order = paidOrder();
         order.setInventoryDeducted(false);
         when(orders.lockByIdWithItems(7L)).thenReturn(Optional.of(order));
+        when(deliveryService.findByOrderId(7L)).thenReturn(Optional.empty());
         when(orders.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         cancellationService.cancel(7L, 11L);
 
         verify(deliveryService).cancelForOrder(7L);
         verifyNoInteractions(catalogue);
+        verify(paymentService).recordRefundForOrder(7L);
+    }
+
+    @Test
+    void legacyCheckoutWithEligibleDeliveryRestoresStockWhenInventoryMarkerIsMissing() {
+        Order order = paidOrder();
+        order.setInventoryDeducted(false);
+        Delivery delivery = new Delivery(7L, "Suva", null, null);
+        when(orders.lockByIdWithItems(7L)).thenReturn(Optional.of(order));
+        when(deliveryService.findByOrderId(7L)).thenReturn(Optional.of(delivery));
+        when(catalogue.store(null)).thenReturn(store);
+        when(store.getId()).thenReturn(3L);
+        when(orders.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Order cancelled = cancellationService.cancel(7L, 11L);
+
+        assertThat(cancelled.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        verify(deliveryService).cancelForOrder(7L);
+        verify(catalogue).restoreStock(21L, 3L, 2);
         verify(paymentService).recordRefundForOrder(7L);
     }
 

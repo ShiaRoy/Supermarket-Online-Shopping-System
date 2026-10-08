@@ -38,10 +38,16 @@ public class OrderCancellationService {
         }
         validateOrderStatus(order);
 
+        // Orders created before the inventory marker was introduced have false here even
+        // though checkout deducted stock. An existing eligible delivery is reliable
+        // evidence that such a paid checkout reached inventory deduction.
+        boolean restoreInventory = order.isInventoryDeducted()
+                || deliveryService.findByOrderId(orderId).isPresent();
+
         // Rechecks delivery eligibility under a delivery lock before state is committed.
         deliveryService.cancelForOrder(orderId);
 
-        if (order.isInventoryDeducted()) {
+        if (restoreInventory) {
             Long storeId = catalogue.store(null).getId();
             for (OrderItem item : order.getItems()) {
                 catalogue.restoreStock(item.getProductId(), storeId, item.getQuantity());
