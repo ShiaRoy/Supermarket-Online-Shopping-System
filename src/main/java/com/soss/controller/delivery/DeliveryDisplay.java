@@ -1,6 +1,7 @@
 package com.soss.controller.delivery;
 
 import com.soss.model.delivery.Delivery;
+import com.soss.model.delivery.DeliveryStatus;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -10,8 +11,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 /**
- * Formats delivery times for display, e.g. "Today, 2pm – 4pm".
- * Used from the delivery templates as ${@deliveryDisplay.expectedWindow(delivery)}.
+ * Formats delivery times for display
  */
 @Component("deliveryDisplay")
 public class DeliveryDisplay {
@@ -30,7 +30,23 @@ public class DeliveryDisplay {
     }
 
     public String updatedAt(Delivery delivery) {
-        return UPDATED.format(delivery.getUpdatedAt()).replace("AM", "am").replace("PM", "pm");
+        return stamp(delivery.getUpdatedAt());
+    }
+
+    /** this part of code is for showing the date. */
+    public String stamp(LocalDateTime time) {
+        return UPDATED.format(time).replace("AM", "am").replace("PM", "pm");
+    }
+
+    
+    public String stepTime(Delivery delivery, DeliveryStatus step) {
+        LocalDateTime reached = switch (step) {
+            case CONFIRMED -> delivery.getCreatedAt();
+            case PACKED -> delivery.getPackedAt();
+            case OUT_FOR_DELIVERY -> delivery.getOutForDeliveryAt();
+            case DELIVERED -> delivery.getDeliveredAt();
+        };
+        return reached == null ? "" : stamp(reached);
     }
 
     private String time(LocalTime time) {

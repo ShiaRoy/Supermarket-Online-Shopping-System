@@ -7,6 +7,18 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
   <link rel="stylesheet" th:href="@{/css/styles.css}" />
   <link rel="stylesheet" th:href="@{/css/navigation.css}" />
+  <style>
+    .delivery-handover-form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .delivery-handover-form input[type="text"] { box-sizing: border-box; width: 130px; height: 36px; padding: 7px 10px; border: 1px solid #b7cfc5; border-radius: 10px; font: inherit; }
+    .delivery-subnote { display: block; margin-top: 4px; font-size: 12px; color: #876e5b; }
+    .delivery-subnote.problem { color: #a73525; }
+    .delivery-actions .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .delivery-driver-form { grid-template-columns: minmax(110px, 1fr) max-content; }
+    @media (min-width: 961px) {
+      .delivery-record-head, .delivery-record { grid-template-columns: 60px minmax(110px, 1fr) minmax(130px, 1fr) minmax(110px, 0.8fr) minmax(230px, 1.4fr) minmax(150px, auto); gap: 12px; }
+    }
+    .delivery-driver-form select { box-sizing: border-box; width: 100%; min-width: 0; height: 36px; padding: 7px 8px; border: 1px solid #b7cfc5; border-radius: 10px; background: #fff; font: inherit; }
+  </style>
 </head>
 <body>
   <header th:replace="~{fragments :: siteHeader('delivery')}"></header>
@@ -44,21 +56,51 @@
           <div class="delivery-cell delivery-order" data-label="Order"><strong th:text="'#' + ${d.orderId}">#1</strong></div>
           <div class="delivery-cell" data-label="Address"><span th:text="${d.deliveryAddress}">Vuci Road, Nausori</span></div>
           <div class="delivery-cell" data-label="Expected time" th:text="${@deliveryDisplay.expectedWindow(d)}">Today, 2pm - 4pm</div>
-          <div class="delivery-cell" data-label="Status"><span th:class="${d.status.name() == 'DELIVERED'} ? 'status delivered' : 'status delivery'" th:text="${d.status.label}">Out for delivery</span></div>
+          <div class="delivery-cell" data-label="Status">
+            <span th:class="${d.status.name() == 'DELIVERED'} ? 'status delivered' : 'status delivery'" th:text="${d.status.label}">Out for delivery</span>
+            <small class="delivery-subnote problem" th:if="${d.failedAttemptReason != null and d.cancelledAt == null}" th:text="'Failed attempt: ' + ${d.failedAttemptReason}">Failed attempt: nobody home</small>
+          </div>
           <div class="delivery-cell delivery-driver" data-label="Driver">
-            <span th:text="${d.assignedStaffId != null} ? 'Driver ' + ${d.assignedStaffId} : 'Unassigned'">Unassigned</span>
-            <form class="delivery-driver-form" th:if="${d.status.next() != null}" sec:authorize="hasAnyRole('STAFF', 'ADMIN')" th:action="@{/delivery/{id}/driver(id=${d.id})}" method="post">
-              <span class="delivery-change-label" th:text="${d.assignedStaffId != null} ? 'Change:' : 'Assign:'">Change:</span>
-              <input type="number" name="staffId" min="1" th:value="${d.assignedStaffId}" placeholder="ID" aria-label="Driver ID" required />
+            <strong th:text="${d.assignedStaffId == null ? 'Unassigned' : (driverNames.get(d.assignedStaffId) != null ? driverNames.get(d.assignedStaffId) : 'Driver ' + d.assignedStaffId)}">Unassigned</strong>
+            <form class="delivery-driver-form" th:if="${d.status.next() != null and d.cancelledAt == null}" sec:authorize="hasAnyRole('STAFF', 'ADMIN')" th:action="@{/delivery/{id}/driver(id=${d.id})}" method="post">
+              <select name="staffId" aria-label="Driver">
+                <option value="">Unassigned</option>
+                <option th:each="u : ${drivers}" th:value="${u.id}" th:text="${u.fullName}" th:selected="${u.id == d.assignedStaffId}">Driver name</option>
+              </select>
               <button type="submit" class="btn btn-outline btn-small">Assign</button>
             </form>
+            <small class="delivery-subnote problem" th:if="${#lists.isEmpty(drivers) and d.status.next() != null and d.cancelledAt == null}" sec:authorize="hasAnyRole('STAFF', 'ADMIN')">No delivery drivers yet</small>
           </div>
           <div class="delivery-cell delivery-actions" data-label="Actions">
-            <form th:if="${d.status.next() != null}" th:action="@{/delivery/{id}/status(id=${d.id})}" method="post">
-              <input type="hidden" name="status" th:value="${d.status.next().name()}" />
-              <button type="submit" class="btn btn-small" th:text="'Mark as ' + ${d.status.next().label}">Mark as Packed</button>
-            </form>
-            <span class="delivery-completed" th:unless="${d.status.next() != null}">Completed</span>
+            <span class="delivery-subnote problem" th:if="${d.cancelledAt != null}">Cancelled (order cancelled)</span>
+            <th:block th:if="${d.cancelledAt == null}">
+              <!-- Confirmed -> Packed, and Packed -> Out for delivery (needs a driver) -->
+              <form th:if="${d.status.next() != null and d.status.next().name() != 'DELIVERED'}" th:action="@{/delivery/{id}/status(id=${d.id})}" method="post">
+                <input type="hidden" name="status" th:value="${d.status.next().name()}" />
+                <button type="submit" class="btn btn-small"
+                        th:disabled="${d.status.next().name() == 'OUT_FOR_DELIVERY' and d.assignedStaffId == null}"
+                        th:text="'Mark as ' + ${d.status.next().label}">Mark as Packed</button>
+              </form>
+              <small class="delivery-subnote problem"
+                     th:if="${d.status.next() != null and d.status.next().name() == 'OUT_FOR_DELIVERY' and d.assignedStaffId == null}">Assign a driver first</small>
+
+              <!-- Out for delivery: record who received it, or report a failed attempt -->
+              <form class="delivery-handover-form" th:if="${d.status.name() == 'OUT_FOR_DELIVERY'}" th:action="@{/delivery/{id}/status(id=${d.id})}" method="post">
+                <input type="hidden" name="status" value="DELIVERED" />
+                <input type="text" name="receivedBy" maxlength="100" placeholder="Received by" aria-label="Received by" required />
+                <button type="submit" class="btn btn-small">Mark as Delivered</button>
+              </form>
+              <form class="delivery-handover-form" th:if="${d.status.name() == 'OUT_FOR_DELIVERY'}" th:action="@{/delivery/{id}/failed(id=${d.id})}" method="post">
+                <input type="text" name="reason" maxlength="255" placeholder="Reason" aria-label="Reason for failed attempt" required />
+                <button type="submit" class="btn btn-outline btn-small">Failed attempt</button>
+              </form>
+
+              <div th:if="${d.status.next() == null}">
+                <span class="delivery-completed">Completed</span>
+                <small class="delivery-subnote" th:if="${d.receivedBy != null}" th:text="'Received by ' + ${d.receivedBy}">Received by Name</small>
+                <small class="delivery-subnote" th:text="${d.customerConfirmedAt != null} ? 'Customer confirmed receipt' : 'Waiting for customer to confirm'">Waiting for customer to confirm</small>
+              </div>
+            </th:block>
           </div>
         </article>
       </section>
