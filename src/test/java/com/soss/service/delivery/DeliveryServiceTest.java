@@ -141,6 +141,22 @@ class DeliveryServiceTest {
         assertEquals(42L, delivery.getAssignedStaffId());
     }
 
+    @Test
+    void cancelForOrderCancelsEligibleDeliveryButRefusesDeliveryInProgress() {
+        Delivery confirmed = deliveryWithStatus(DeliveryStatus.CONFIRMED);
+        when(repository.lockByOrderId(1L)).thenReturn(Optional.of(confirmed));
+
+        service.cancelForOrder(1L);
+
+        assertEquals(DeliveryStatus.CANCELLED, confirmed.getStatus());
+
+        Delivery inProgress = deliveryWithStatus(DeliveryStatus.OUT_FOR_DELIVERY);
+        when(repository.lockByOrderId(2L)).thenReturn(Optional.of(inProgress));
+
+        assertThrows(IllegalStateException.class, () -> service.cancelForOrder(2L));
+        assertEquals(DeliveryStatus.OUT_FOR_DELIVERY, inProgress.getStatus());
+    }
+
     // ---- findAll ----
 
     @Test

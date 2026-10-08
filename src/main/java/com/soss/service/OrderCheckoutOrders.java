@@ -166,6 +166,8 @@ public class OrderCheckoutOrders implements CheckoutOrders {
                     storeId,
                     item.quantity());
         }
+        savedOrder.setInventoryDeducted(true);
+        orders.save(savedOrder);
 
         /*
          * 4. Create Delivery record automatically.

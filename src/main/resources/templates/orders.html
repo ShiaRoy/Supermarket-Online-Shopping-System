@@ -125,6 +125,9 @@
 
         </div>
 
+        <div class="alert alert-success" th:if="${message}" role="status" th:text="${message}"></div>
+        <div class="alert alert-danger" th:if="${error}" role="alert" th:text="${error}"></div>
+
 
         <div class="empty-orders"
              th:if="${#lists.isEmpty(orders)}">
@@ -188,6 +191,11 @@
                    th:href="@{/orders/{orderId}/confirmation(orderId=${order.id})}">
                     Details
                 </a>
+
+                <form th:if="${cancellableOrderIds.contains(order.id)}"
+                      th:action="@{/orders/{orderId}/cancel(orderId=${order.id})}" method="post">
+                    <button class="btn btn-outline" type="submit">Cancel order</button>
+                </form>
 
             </div>
 

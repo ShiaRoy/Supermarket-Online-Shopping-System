@@ -105,4 +105,13 @@ public class CatalogueService {
         }
         item.setQuantity(item.getQuantity() - quantity);
     }
+
+    /** Restores stock for an order that was cancelled after checkout deducted it. */
+    @Transactional
+    public void restoreStock(Long productId, Long storeId, int quantity) {
+        if (quantity <= 0) throw new IllegalArgumentException("Quantity must be positive.");
+        Inventory item = inventory.lockStock(productId, storeId)
+            .orElseThrow(() -> new IllegalArgumentException("Product is not stocked at this store."));
+        item.setQuantity(item.getQuantity() + quantity);
+    }
 }

@@ -6,6 +6,7 @@ import com.soss.model.OrderStatus;
 import com.soss.model.Payment;
 import com.soss.model.User;
 import com.soss.service.AccountService;
+import com.soss.service.OrderCancellationService;
 import com.soss.service.OrderService;
 import com.soss.service.PaymentService;
 import jakarta.validation.Valid;
@@ -21,6 +22,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +37,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/orders")
@@ -43,15 +46,18 @@ public class OrderController {
     private final OrderService orderService;
     private final PaymentService paymentService;
     private final AccountService accountService;
+    private final OrderCancellationService cancellationService;
 
     public OrderController(
             OrderService orderService,
             PaymentService paymentService,
-            AccountService accountService) {
+            AccountService accountService,
+            OrderCancellationService cancellationService) {
 
         this.orderService = orderService;
         this.paymentService = paymentService;
         this.accountService = accountService;
+        this.cancellationService = cancellationService;
     }
 
     /*
@@ -64,10 +70,9 @@ public class OrderController {
 
         var user = accountService.profile(principal.getName());
 
-        model.addAttribute(
-                "orders",
-                orderService.getOrdersByCustomerId(user.getId())
-        );
+        List<Order> orders = orderService.getOrdersByCustomerId(user.getId());
+        model.addAttribute("orders", orders);
+        model.addAttribute("cancellableOrderIds", cancellableOrderIds(orders));
 
         model.addAttribute("customerId", user.getId());
 
@@ -152,10 +157,9 @@ public class OrderController {
 
         requireCurrentCustomer(customerId, principal);
 
-        model.addAttribute(
-                "orders",
-                orderService.getOrdersByCustomerId(customerId)
-        );
+        List<Order> orders = orderService.getOrdersByCustomerId(customerId);
+        model.addAttribute("orders", orders);
+        model.addAttribute("cancellableOrderIds", cancellableOrderIds(orders));
 
         model.addAttribute("customerId", customerId);
 
@@ -193,8 +197,23 @@ public class OrderController {
 
         model.addAttribute("order", order);
         model.addAttribute("payment", latestPayment);
+        model.addAttribute("canCancel", cancellationService.canCancel(order));
 
         return "confirmation";
+    }
+
+    @PostMapping("/{orderId}/cancel")
+    public String cancelOrder(@PathVariable Long orderId, Principal principal,
+            RedirectAttributes redirectAttributes) {
+        User customer = currentCustomer(principal);
+        requireOwnedOrder(orderId, principal);
+        try {
+            cancellationService.cancel(orderId, customer.getId());
+            redirectAttributes.addFlashAttribute("message", "Order #" + orderId + " has been cancelled.");
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute("error", exception.getMessage());
+        }
+        return "redirect:/orders";
     }
 
     /*
@@ -260,6 +279,13 @@ public class OrderController {
         }
         requireCurrentCustomer(order.getCustomerId(), principal);
         return order;
+    }
+
+    private Set<Long> cancellableOrderIds(List<Order> orders) {
+        return orders.stream()
+                .filter(cancellationService::canCancel)
+                .map(Order::getId)
+                .collect(java.util.stream.Collectors.toSet());
     }
 
     public record CreateOrderRequest(

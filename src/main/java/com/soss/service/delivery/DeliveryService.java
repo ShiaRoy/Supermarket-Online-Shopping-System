@@ -86,4 +86,24 @@ public class DeliveryService {
         delivery.setAssignedStaffId(staffId);
         return delivery;
     }
+
+    /**
+     * Cancels an eligible delivery as part of an order cancellation. Orders without a
+     * delivery are valid: a delivery record is created only after a successful checkout.
+     */
+    @Transactional
+    public void cancelForOrder(Long orderId) {
+        if (orderId == null) {
+            throw new IllegalArgumentException("An order number is required");
+        }
+        deliveryRepository.lockByOrderId(orderId).ifPresent(delivery -> {
+            DeliveryStatus status = delivery.getStatus();
+            if (status == DeliveryStatus.OUT_FOR_DELIVERY || status == DeliveryStatus.DELIVERED) {
+                throw new IllegalStateException("This order can no longer be cancelled because delivery is in progress.");
+            }
+            if (status != DeliveryStatus.CANCELLED) {
+                delivery.setStatus(DeliveryStatus.CANCELLED);
+            }
+        });
+    }
 }

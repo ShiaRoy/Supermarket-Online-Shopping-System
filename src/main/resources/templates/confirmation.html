@@ -74,8 +74,11 @@
           </div>
         </div>
         <div class="actions">
-          <a class="btn btn-outline" th:href="@{/}">Back to home</a
-          ><a class="btn" th:href="@{/orders}">View my orders</a>
+          <a class="btn btn-outline" th:href="@{/}">Back to home</a>
+          <form th:if="${canCancel}" th:action="@{/orders/{orderId}/cancel(orderId=${order.id})}" method="post">
+            <button class="btn btn-outline" type="submit">Cancel order</button>
+          </form>
+          <a class="btn" th:href="@{/orders}">View my orders</a>
         </div>
       </section>
     </main>
