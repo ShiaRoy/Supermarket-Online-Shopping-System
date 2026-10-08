@@ -7,6 +7,7 @@ import com.soss.model.Payment;
 import com.soss.model.User;
 import com.soss.service.AccountService;
 import com.soss.service.OrderCancellationService;
+import com.soss.service.OrderReorderService;
 import com.soss.service.OrderService;
 import com.soss.service.PaymentService;
 import jakarta.validation.Valid;
@@ -47,17 +48,20 @@ public class OrderController {
     private final PaymentService paymentService;
     private final AccountService accountService;
     private final OrderCancellationService cancellationService;
+    private final OrderReorderService reorderService;
 
     public OrderController(
             OrderService orderService,
             PaymentService paymentService,
             AccountService accountService,
-            OrderCancellationService cancellationService) {
+            OrderCancellationService cancellationService,
+            OrderReorderService reorderService) {
 
         this.orderService = orderService;
         this.paymentService = paymentService;
         this.accountService = accountService;
         this.cancellationService = cancellationService;
+        this.reorderService = reorderService;
     }
 
     /*
@@ -214,6 +218,31 @@ public class OrderController {
             redirectAttributes.addFlashAttribute("error", exception.getMessage());
         }
         return "redirect:/orders";
+    }
+
+    @PostMapping("/{orderId}/reorder")
+    public String reorderPreviousOrder(@PathVariable Long orderId, Principal principal,
+            RedirectAttributes redirectAttributes) {
+        User customer = currentCustomer(principal);
+        // Keep the controller-level ownership response consistent with the other order actions.
+        requireOwnedOrder(orderId, principal);
+        try {
+            var result = reorderService.reorder(orderId, customer.getId(), principal.getName());
+            if (result.addedQuantity() > 0) {
+                redirectAttributes.addFlashAttribute("message", "Added "
+                        + result.addedQuantity() + " item"
+                        + (result.addedQuantity() == 1 ? "" : "s") + " to your cart.");
+            }
+            if (!result.notices().isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", String.join(" ", result.notices()));
+            } else if (result.addedQuantity() == 0) {
+                redirectAttributes.addFlashAttribute("error",
+                        "None of the products in that order are currently available.");
+            }
+        } catch (IllegalArgumentException exception) {
+            redirectAttributes.addFlashAttribute("error", exception.getMessage());
+        }
+        return "redirect:/cart";
     }
 
     /*

@@ -33,6 +33,7 @@ public class CatalogueCheckoutProducts implements CheckoutProducts {
         Product product = stock.getProduct();
         return new ProductSnapshot(product.getId(), product.getName(),
                 product.getIcon(), product.getPrice(),
-                product.isActive() && stock.getQuantity() > 0);
+                product.isActive() && stock.getQuantity() > 0,
+                stock.getQuantity());
     }
 }

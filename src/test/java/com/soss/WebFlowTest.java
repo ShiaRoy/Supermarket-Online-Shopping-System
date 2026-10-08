@@ -37,6 +37,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -261,6 +262,8 @@ class WebFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("CANCELLED")))
                 .andExpect(content().string(containsString("orders-page")))
+                .andExpect(content().string(containsString(
+                        "/orders/" + order.getId() + "/reorder")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(
                         containsString("/delivery/track/" + order.getId()))));
         mvc.perform(get("/orders/" + order.getId() + "/confirmation")
@@ -277,6 +280,13 @@ class WebFlowTest {
                 .andExpect(content().string(containsString("payment-history-table")))
                 .andExpect(content().string(containsString("payment-status--refunded")))
                 .andExpect(content().string(containsString("REFUNDED")));
+        mvc.perform(post("/orders/" + order.getId() + "/reorder")
+                        .with(customerUser(CUSTOMER_EMAIL)).with(csrf()))
+                .andExpect(redirectedUrl("/cart"))
+                .andExpect(flash().attributeExists("message"));
+        mvc.perform(get("/cart").with(customerUser(CUSTOMER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Fresh Milk")));
     }
 
     @Test
@@ -296,6 +306,9 @@ class WebFlowTest {
                         .with(customerUser(OTHER_CUSTOMER_EMAIL)))
                 .andExpect(status().isForbidden());
         mvc.perform(post("/orders/" + orderId + "/cancel")
+                        .with(customerUser(OTHER_CUSTOMER_EMAIL)).with(csrf()))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/orders/" + orderId + "/reorder")
                         .with(customerUser(OTHER_CUSTOMER_EMAIL)).with(csrf()))
                 .andExpect(status().isForbidden());
 

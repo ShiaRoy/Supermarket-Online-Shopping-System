@@ -195,6 +195,10 @@
                     Details
                 </a>
 
+                <form th:action="@{/orders/{orderId}/reorder(orderId=${order.id})}" method="post">
+                    <button class="btn btn-outline" type="submit">Reorder</button>
+                </form>
+
                 <form th:if="${cancellableOrderIds.contains(order.id)}"
                       th:action="@{/orders/{orderId}/cancel(orderId=${order.id})}" method="post">
                     <button class="btn btn-outline" type="submit">Cancel order</button>

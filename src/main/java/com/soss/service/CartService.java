@@ -25,6 +25,10 @@ public class CartService {
     public record Line(Long id, String name, String icon, int quantity, BigDecimal unitPrice, BigDecimal total) {}
     public record Basket(List<Line> lines, BigDecimal subtotal, BigDecimal delivery,
                          BigDecimal discount, BigDecimal total, String promo, String token, int count) {}
+    /** A historical order line supplied by the Orders module for a customer-requested reorder. */
+    public record ReorderLine(Long productId, String productName, Integer quantity) {}
+    /** The result distinguishes added lines from items skipped or adjusted against live stock. */
+    public record ReorderResult(int addedQuantity, List<String> notices) {}
     // UI choices only; reconcile with the shared Payments module's enum at integration.
     public static final List<String> PAYMENTS = List.of("M-PAiSA", "MyCash", "Visa / Mastercard");
 
@@ -89,6 +93,76 @@ public class CartService {
         if (quantity < 0 || quantity > 99) throw new IllegalArgumentException("Quantity must be between 0 and 99.");
         if (quantity == 0) cart.quantities.remove(productId); else cart.quantities.put(productId, quantity);
         cart.checkoutToken = UUID.randomUUID().toString();
+    }
+
+    /**
+     * Merges historical order lines into the customer's existing cart using current default-store
+     * availability. This does not reserve or deduct stock; checkout remains responsible for that.
+     */
+    @Transactional
+    public ReorderResult reorder(String owner, List<ReorderLine> orderLines) {
+        Cart cart = locked(owner);
+        if (orderLines == null || orderLines.isEmpty()) {
+            throw new IllegalArgumentException("This order has no items to reorder.");
+        }
+
+        Map<Long, ReorderLine> requested = new LinkedHashMap<>();
+        for (ReorderLine line : orderLines) {
+            if (line == null || line.productId() == null || line.quantity() == null
+                    || line.quantity() <= 0) {
+                continue;
+            }
+            requested.merge(line.productId(), line,
+                    (first, duplicate) -> new ReorderLine(first.productId(),
+                            first.productName(), safeQuantityTotal(first.quantity(), duplicate.quantity())));
+        }
+
+        int added = 0;
+        List<String> notices = new ArrayList<>();
+        for (ReorderLine line : requested.values()) {
+            String historicalName = line.productName() == null || line.productName().isBlank()
+                    ? "This product" : line.productName();
+            Optional<CheckoutProducts.ProductSnapshot> current = products.find(line.productId());
+            if (current.isEmpty()) {
+                notices.add(historicalName + " is no longer available.");
+                continue;
+            }
+
+            CheckoutProducts.ProductSnapshot product = current.get();
+            String name = product.name() == null || product.name().isBlank()
+                    ? historicalName : product.name();
+            if (!product.active()) {
+                notices.add(name + (product.availableQuantity() <= 0
+                        ? " is out of stock." : " is not currently available."));
+                continue;
+            }
+
+            int currentQuantity = cart.quantities.getOrDefault(line.productId(), 0);
+            int permittedQuantity = Math.min(99, Math.max(0, product.availableQuantity()));
+            int requestedQuantity = Math.min(99, line.quantity());
+            int finalQuantity = Math.min(permittedQuantity,
+                    safeQuantityTotal(currentQuantity, requestedQuantity));
+            int lineAdded = Math.max(0, finalQuantity - currentQuantity);
+            if (lineAdded == 0) {
+                notices.add(name + " is already at the available quantity in your cart.");
+                continue;
+            }
+
+            cart.quantities.put(line.productId(), finalQuantity);
+            added += lineAdded;
+            if (lineAdded < line.quantity()) {
+                notices.add(name + ": added " + lineAdded + " of " + line.quantity()
+                        + " because only " + permittedQuantity + " are currently available.");
+            }
+        }
+        if (added > 0) {
+            cart.checkoutToken = UUID.randomUUID().toString();
+        }
+        return new ReorderResult(added, List.copyOf(notices));
+    }
+
+    private int safeQuantityTotal(int first, int second) {
+        return first > Integer.MAX_VALUE - second ? Integer.MAX_VALUE : first + second;
     }
 
     @Transactional

@@ -8,6 +8,7 @@
     <div><h1>Your cart</h1><p class="muted">Review your groceries before checkout.</p></div>
     <a class="btn btn-outline-success" th:href="@{/products}">Continue shopping</a>
   </div>
+  <div th:if="${message}" class="alert alert-success" role="status" th:text="${message}"></div>
   <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
   <div class="row g-4">
     <div class="col-lg-7"><section class="panel cart-lines" aria-label="Cart items">
