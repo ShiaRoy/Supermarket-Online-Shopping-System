@@ -16,12 +16,14 @@ public class OrderCancellationService {
     private final OrderRepository orders;
     private final CatalogueService catalogue;
     private final DeliveryService deliveryService;
+    private final PaymentService paymentService;
 
     public OrderCancellationService(OrderRepository orders, CatalogueService catalogue,
-            DeliveryService deliveryService) {
+            DeliveryService deliveryService, PaymentService paymentService) {
         this.orders = orders;
         this.catalogue = catalogue;
         this.deliveryService = deliveryService;
+        this.paymentService = paymentService;
     }
 
     @Transactional
@@ -47,6 +49,7 @@ public class OrderCancellationService {
             order.setInventoryDeducted(false);
         }
 
+        paymentService.recordRefundForOrder(orderId);
         order.setStatus(OrderStatus.CANCELLED);
         return orders.save(order);
     }

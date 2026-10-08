@@ -4,10 +4,12 @@ import com.soss.model.Order;
 import com.soss.model.OrderStatus;
 import com.soss.model.Payment;
 import com.soss.model.PaymentStatus;
+import com.soss.model.PaymentTransactionType;
 import com.soss.repository.OrderRepository;
 import com.soss.repository.PaymentRepository;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -161,6 +164,49 @@ class PaymentServiceTest {
         assertThat(paymentService.findPaymentByTransactionReference(reference)).containsSame(payment);
         verify(paymentRepository).findByTransactionReference(reference);
         verifyNoInteractions(orderRepository);
+    }
+
+    @Test
+    void successfulPaymentCanReceiveExactlyOneLinkedSimulatedRefund() {
+        Payment original = new Payment();
+        original.setId(31L);
+        original.setOrderId(20L);
+        original.setAmount(new BigDecimal("25.75"));
+        original.setStatus(PaymentStatus.SUCCESS);
+        original.setTransactionType(PaymentTransactionType.PAYMENT);
+        original.setPaymentMethod("M-PAiSA");
+        List<Payment> history = new ArrayList<>(List.of(original));
+        when(paymentRepository.findByOrderId(20L)).thenReturn(history);
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> {
+            Payment refund = invocation.getArgument(0);
+            refund.setId(32L);
+            history.add(refund);
+            return refund;
+        });
+
+        Payment refund = paymentService.recordRefundForOrder(20L).orElseThrow();
+
+        assertThat(refund.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(refund.getTransactionType()).isEqualTo(PaymentTransactionType.REFUND);
+        assertThat(refund.getAmount()).isEqualByComparingTo("25.75");
+        assertThat(refund.getRelatedPaymentId()).isEqualTo(31L);
+        assertThat(refund.getPaymentMethod()).isEqualTo("M-PAiSA");
+        assertThat(refund.getTransactionReference()).startsWith("REFUND-");
+
+        assertThat(paymentService.recordRefundForOrder(20L)).containsSame(refund);
+        verify(paymentRepository, times(1)).save(any(Payment.class));
+    }
+
+    @Test
+    void failedOrUnpaidPaymentsNeverReceiveRefunds() {
+        Payment failed = new Payment();
+        failed.setOrderId(20L);
+        failed.setAmount(new BigDecimal("25.75"));
+        failed.setStatus(PaymentStatus.FAILED);
+        when(paymentRepository.findByOrderId(20L)).thenReturn(List.of(failed));
+
+        assertThat(paymentService.recordRefundForOrder(20L)).isEmpty();
+        verify(paymentRepository, never()).save(any(Payment.class));
     }
 
     private Order pendingOrder() {

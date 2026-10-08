@@ -33,6 +33,8 @@ class OrderCancellationServiceTest {
     @Mock
     private DeliveryService deliveryService;
     @Mock
+    private PaymentService paymentService;
+    @Mock
     private Store store;
 
     @InjectMocks
@@ -52,6 +54,7 @@ class OrderCancellationServiceTest {
         assertThat(cancelled.isInventoryDeducted()).isFalse();
         verify(deliveryService).cancelForOrder(7L);
         verify(catalogue).restoreStock(21L, 3L, 2);
+        verify(paymentService).recordRefundForOrder(7L);
         verify(orders).save(order);
     }
 
@@ -65,7 +68,7 @@ class OrderCancellationServiceTest {
                 .hasMessageContaining("own orders");
 
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
-        verifyNoInteractions(catalogue, deliveryService);
+        verifyNoInteractions(catalogue, deliveryService, paymentService);
         verify(orders, never()).save(any());
     }
 
@@ -87,7 +90,7 @@ class OrderCancellationServiceTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("already been cancelled");
 
-        verifyNoInteractions(catalogue, deliveryService);
+        verifyNoInteractions(catalogue, deliveryService, paymentService);
         verify(orders, never()).save(any());
     }
 
@@ -102,6 +105,7 @@ class OrderCancellationServiceTest {
 
         verify(deliveryService).cancelForOrder(7L);
         verifyNoInteractions(catalogue);
+        verify(paymentService).recordRefundForOrder(7L);
     }
 
     private Order paidOrder() {

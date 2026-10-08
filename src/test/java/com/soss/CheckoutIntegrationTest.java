@@ -3,6 +3,8 @@ package com.soss;
 import com.soss.controller.product.ProductForm;
 import com.soss.model.*;
 import com.soss.repository.*;
+import com.soss.repository.delivery.DeliveryRepository;
+import com.soss.model.delivery.DeliveryStatus;
 import com.soss.service.*;
 import java.math.BigDecimal;
 import java.util.List;
@@ -36,6 +38,7 @@ class CheckoutIntegrationTest {
     @Autowired CheckoutOrders checkoutOrders;
     @Autowired CatalogueService catalogue;
     @Autowired OrderService orderService;
+    @Autowired OrderCancellationService cancellations;
     @Autowired UserRepository users;
     @Autowired CartRepository cartRepository;
     @Autowired OrderRepository orders;
@@ -43,6 +46,7 @@ class CheckoutIntegrationTest {
     @Autowired InventoryRepository inventory;
     @Autowired ProductRepository products;
     @Autowired StoreRepository stores;
+    @Autowired DeliveryRepository deliveries;
     @Autowired MockMvc mvc;
 
     private final String owner = "checkout@example.com";
@@ -53,6 +57,7 @@ class CheckoutIntegrationTest {
 
     @BeforeEach
     void setup() {
+        deliveries.deleteAll();
         payments.deleteAll();
         orders.deleteAll();
         cartRepository.deleteAll();
@@ -199,6 +204,45 @@ class CheckoutIntegrationTest {
         customer(longEmail);
         assertThat(carts.view(longEmail).lines()).isEmpty();
         assertThat(cartRepository.findByOwner(longEmail)).isPresent();
+    }
+
+    @Test
+    void cancellingPaidCheckoutRestoresStockCancelsDeliveryAndRecordsOneRefund() {
+        carts.change(owner, productId, 1);
+        var receipt = carts.place(owner, checkoutForm(carts.view(owner).token()));
+        Order order = orderService.getOrderById(receipt.orderId());
+        assertThat(catalogue.detail(productId, storeId, true).getQuantity()).isEqualTo(9);
+
+        cancellations.cancel(order.getId(), customerId);
+
+        assertThat(orderService.getOrderById(order.getId()).getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(catalogue.detail(productId, storeId, true).getQuantity()).isEqualTo(10);
+        assertThat(deliveries.findByOrderId(order.getId()).orElseThrow().getStatus()).isEqualTo(DeliveryStatus.CANCELLED);
+        assertThat(payments.findByOrderId(order.getId()))
+                .extracting(Payment::getStatus)
+                .containsExactlyInAnyOrder(PaymentStatus.SUCCESS, PaymentStatus.REFUNDED);
+
+        assertThatThrownBy(() -> cancellations.cancel(order.getId(), customerId))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(payments.findByOrderId(order.getId())).hasSize(2);
+        assertThat(catalogue.detail(productId, storeId, true).getQuantity()).isEqualTo(10);
+    }
+
+    @Test
+    void cancellationRefusesAnOrderWhoseDeliveryIsAlreadyOutForDelivery() {
+        carts.change(owner, productId, 1);
+        var receipt = carts.place(owner, checkoutForm(carts.view(owner).token()));
+        Order order = orderService.getOrderById(receipt.orderId());
+        var delivery = deliveries.findByOrderId(order.getId()).orElseThrow();
+        delivery.setStatus(DeliveryStatus.OUT_FOR_DELIVERY);
+        deliveries.saveAndFlush(delivery);
+
+        assertThatThrownBy(() -> cancellations.cancel(order.getId(), customerId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("delivery is in progress");
+        assertThat(orderService.getOrderById(order.getId()).getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(catalogue.detail(productId, storeId, true).getQuantity()).isEqualTo(9);
+        assertThat(payments.findByOrderId(order.getId())).hasSize(1);
     }
 
     private User customer(String email) {

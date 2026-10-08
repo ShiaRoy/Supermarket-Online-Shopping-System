@@ -260,9 +260,15 @@ class WebFlowTest {
         mvc.perform(get("/orders/customer/" + customerId + "/view")
                         .with(customerUser(OTHER_CUSTOMER_EMAIL)))
                 .andExpect(status().isForbidden());
+        mvc.perform(post("/orders/" + orderId + "/cancel")
+                        .with(customerUser(OTHER_CUSTOMER_EMAIL)).with(csrf()))
+                .andExpect(status().isForbidden());
 
         mvc.perform(get("/orders/" + orderId + "/confirmation").with(customerUser(CUSTOMER_EMAIL)))
                 .andExpect(status().isOk());
+        mvc.perform(get("/payment-history").with(customerUser(OTHER_CUSTOMER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Order #" + orderId))));
     }
 
     @Test
