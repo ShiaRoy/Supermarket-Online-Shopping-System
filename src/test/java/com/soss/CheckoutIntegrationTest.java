@@ -67,6 +67,113 @@ class CheckoutIntegrationTest {
     }
 
     @Test
+    void staleOrEmptyCartCannotPlaceOrder() {
+        var empty = carts.view(owner);
+        assertThatThrownBy(() -> carts.place(owner, checkoutForm(empty.token())))
+                .hasMessageContaining("empty");
+        carts.change(owner, productId, 1);
+        assertThatThrownBy(() -> carts.place(owner, checkoutForm(empty.token())))
+                .hasMessageContaining("basket changed");
+        assertThat(orders.count()).isZero();
+    }
+
+    @Test
+    void orderBoundaryRejectsInconsistentTotalsBeforeSideEffects() {
+        var valid = request(owner, UUID.randomUUID().toString());
+        var forged = new CheckoutOrders.Request(valid.owner(), valid.checkoutToken(), valid.address(),
+                valid.deliverySlot(), valid.paymentMethod(), valid.currency(), valid.subtotal(),
+                valid.delivery(), valid.discount(), BigDecimal.ZERO, valid.promo(), valid.items());
+        assertThatThrownBy(() -> checkoutOrders.place(forged)).hasMessageContaining("totals");
+        assertThat(orders.count()).isZero();
+        assertThat(payments.count()).isZero();
+        assertThat(catalogue.detail(productId, storeId, true).getQuantity()).isEqualTo(10);
+    }
+
+    @Test
+    void promoCodesNormalizeReplaceRemoveAndRecalculate() {
+        Long expensive = catalogue.save(null, productForm("Basket", "50.00", 10)).getId();
+        carts.change(owner, expensive, 1);
+        carts.promo(owner, "  save5  ");
+        assertThat(carts.view(owner).promo()).isEqualTo("SAVE5");
+        assertThat(carts.view(owner).discount()).isEqualByComparingTo("5.00");
+        assertThat(carts.view(owner).total()).isEqualByComparingTo("48.00");
+        String token = carts.view(owner).token();
+        carts.promo(owner, "SAVE5");
+        assertThat(carts.view(owner).token()).isEqualTo(token);
+        assertThatThrownBy(() -> carts.promo(owner, "wrong"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(carts.view(owner).promo()).isEqualTo("SAVE5");
+        carts.promo(owner, "freedel");
+        assertThat(carts.view(owner).discount()).isEqualByComparingTo("3.00");
+        assertThat(carts.view(owner).total()).isEqualByComparingTo("50.00");
+        carts.promo(owner, "BULA10");
+        carts.change(owner, expensive, 1);
+        assertThat(carts.view(owner).discount()).isEqualByComparingTo("10.00");
+        carts.promo(owner, "   ");
+        assertThat(carts.view(owner).promo()).isNull();
+        assertThat(carts.view(owner).total()).isEqualByComparingTo("103.00");
+    }
+
+    @Test
+    void minimumSpendIsCheckedAtApplyAndCheckout() {
+        carts.change(owner, productId, 1);
+        assertThatThrownBy(() -> carts.promo(owner, "SAVE5"))
+                .hasMessageContaining("50.00");
+        Long expensive = catalogue.save(null, productForm("Basket", "50.00", 10)).getId();
+        carts.change(owner, expensive, 1);
+        carts.promo(owner, "SAVE5");
+        carts.change(owner, expensive, -1);
+        var basket = carts.view(owner);
+        assertThat(basket.discount()).isEqualByComparingTo("0.00");
+        assertThatThrownBy(() -> carts.place(owner, checkoutForm(basket.token())))
+                .hasMessageContaining("50.00");
+        assertThat(orders.count()).isZero();
+        assertThat(payments.count()).isZero();
+        assertThat(carts.view(owner).token()).isEqualTo(basket.token());
+    }
+
+    @Test
+    void directServiceRejectsMalformedCheckoutAndPreservesCart() {
+        carts.change(owner, productId, 1);
+        var basket = carts.view(owner);
+        assertThatThrownBy(() -> carts.place(owner, null)).isInstanceOf(IllegalArgumentException.class);
+        CheckoutForm form = checkoutForm("-".repeat(36));
+        assertThatThrownBy(() -> carts.place(owner, form)).hasMessageContaining("token");
+        form.setToken(basket.token());
+        form.setAddress("   ");
+        assertThatThrownBy(() -> carts.place(owner, form)).hasMessageContaining("address");
+        form.setAddress("Test address");
+        form.setDeliverySlot("2000-01-01 | 10am – 12pm");
+        assertThatThrownBy(() -> carts.place(owner, form)).hasMessageContaining("delivery time");
+        form.setDeliverySlot(carts.slots().getFirst());
+        form.setPaymentMethod(null);
+        assertThatThrownBy(() -> carts.place(owner, form)).hasMessageContaining("payment method");
+        form.setPaymentMethod("untrusted");
+        assertThatThrownBy(() -> carts.place(owner, form)).hasMessageContaining("payment method");
+        assertThat(orders.count()).isZero();
+        assertThat(payments.count()).isZero();
+        assertThat(carts.view(owner).token()).isEqualTo(basket.token());
+    }
+
+    @Test
+    void apiIgnoresSubmittedPricesAndRejectsInvalidFields() throws Exception {
+        carts.change(owner, productId, 1);
+        String token = carts.view(owner).token();
+        mvc.perform(post("/api/checkout").with(user(owner).roles("CUSTOMER")).with(csrf())
+                .contentType("application/json").content("""
+                    {"token":"%s","address":" ","deliverySlot":"invalid","paymentMethod":"invalid"}
+                    """.formatted(token))).andExpect(status().isBadRequest());
+        assertThat(orders.count()).isZero();
+        mvc.perform(post("/api/checkout").with(user(owner).roles("CUSTOMER")).with(csrf())
+                .contentType("application/json").content("""
+                    {"token":"%s","address":"Test address","deliverySlot":"%s",
+                     "paymentMethod":"MyCash","total":0,"discount":999,"unitPrice":0}
+                    """.formatted(token, carts.slots().getFirst()))).andExpect(status().isOk());
+        assertThat(orders.findByCustomerIdAndCheckoutToken(customerId, token).orElseThrow()
+                .getTotalAmount()).isEqualByComparingTo("7.50");
+    }
+
+    @Test
     void authenticatedCustomerGetsCartWithoutPreProvisioning() throws Exception {
         mvc.perform(get("/api/cart").with(user(owner).roles("CUSTOMER")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.count").value(0));
@@ -108,6 +215,10 @@ class CheckoutIntegrationTest {
         assertThat(order.getCustomerId()).isEqualTo(customerId);
         assertThat(order.getCheckoutToken()).isEqualTo(form.getToken());
         assertThat(order.getTotalAmount()).isEqualByComparingTo("11.10");
+        assertThat(order.getSubtotalAmount()).isEqualByComparingTo("9.00");
+        assertThat(order.getDeliveryAmount()).isEqualByComparingTo("3.00");
+        assertThat(order.getDiscountAmount()).isEqualByComparingTo("0.90");
+        assertThat(order.getPromoCode()).isEqualTo("BULA10");
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
         var recorded = payments.findByOrderId(order.getId());
         assertThat(recorded).hasSize(1);

@@ -37,6 +37,24 @@ public class Order {
     @Column(precision = 19, scale = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
+    @Column(precision = 19, scale = 2)
+    private BigDecimal subtotalAmount;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal deliveryAmount;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal discountAmount;
+    @Column(length = 32)
+    private String promoCode;
+
+    public BigDecimal getSubtotalAmount() { return subtotalAmount; }
+    public void setSubtotalAmount(BigDecimal value) { subtotalAmount = value; }
+    public BigDecimal getDeliveryAmount() { return deliveryAmount; }
+    public void setDeliveryAmount(BigDecimal value) { deliveryAmount = value; }
+    public BigDecimal getDiscountAmount() { return discountAmount; }
+    public void setDiscountAmount(BigDecimal value) { discountAmount = value; }
+    public String getPromoCode() { return promoCode; }
+    public void setPromoCode(String value) { promoCode = value; }
+
     @Enumerated(EnumType.STRING)
     private OrderStatus status = OrderStatus.PENDING_PAYMENT;
 
