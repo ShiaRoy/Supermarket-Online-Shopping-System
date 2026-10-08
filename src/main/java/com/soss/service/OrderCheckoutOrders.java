@@ -8,7 +8,6 @@ import com.soss.repository.UserRepository;
 import com.soss.service.delivery.DeliveryService;
 
 import java.math.RoundingMode;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -106,34 +105,6 @@ public class OrderCheckoutOrders implements CheckoutOrders {
                     "Checkout must contain at least one item.");
         }
 
-        if (request.address() == null || request.address().strip().isBlank() || request.address().length() > 255)
-            throw new IllegalArgumentException("Enter a delivery address (maximum 255 characters).");
-        if (request.deliverySlot() == null || !new CartSlots().available().contains(request.deliverySlot()))
-            throw new IllegalArgumentException("Choose an available delivery time.");
-        if (request.paymentMethod() == null || !CartService.PAYMENTS.contains(request.paymentMethod()) || !"FJD".equals(request.currency()))
-            throw new IllegalArgumentException("Choose a supported payment method and currency.");
-        BigDecimal subtotal = new BigDecimal("0.00");
-        java.util.Set<Long> productIds = new java.util.HashSet<>();
-        for (Item item : request.items()) {
-            if (item == null || item.productId() == null || item.productId() <= 0
-                    || !productIds.add(item.productId()) || item.quantity() < 1 || item.quantity() > 99
-                    || item.unitPrice() == null || item.unitPrice().signum() < 0)
-                throw new IllegalArgumentException("Invalid checkout item.");
-            BigDecimal lineTotal = item.unitPrice().setScale(2, RoundingMode.UNNECESSARY)
-                    .multiply(BigDecimal.valueOf(item.quantity()));
-            if (item.total() == null || lineTotal.compareTo(item.total()) != 0)
-                throw new IllegalArgumentException("Checkout line total does not match its quantity and price.");
-            subtotal = subtotal.add(lineTotal);
-        }
-        BigDecimal delivery = new BigDecimal("3.00");
-        PromoCodes.requireEligible(request.promo(), subtotal);
-        BigDecimal discount = PromoCodes.discount(request.promo(), subtotal, delivery);
-        if (request.subtotal() == null || subtotal.compareTo(request.subtotal()) != 0
-                || request.delivery() == null || delivery.compareTo(request.delivery()) != 0
-                || request.discount() == null || discount.compareTo(request.discount()) != 0
-                || subtotal.add(delivery).subtract(discount).compareTo(request.total()) != 0)
-            throw new IllegalArgumentException("Checkout totals are inconsistent.");
-
         Long storeId = catalogue.store(null).getId();
 
         Order order = new Order();
@@ -175,10 +146,6 @@ public class OrderCheckoutOrders implements CheckoutOrders {
                         .setScale(
                                 2,
                                 RoundingMode.UNNECESSARY));
-        savedOrder.setSubtotalAmount(subtotal);
-        savedOrder.setDeliveryAmount(delivery);
-        savedOrder.setDiscountAmount(discount);
-        savedOrder.setPromoCode(PromoCodes.normalize(request.promo()));
 
         orders.save(savedOrder);
 
@@ -279,7 +246,8 @@ public class OrderCheckoutOrders implements CheckoutOrders {
         }
 
         if (checkoutToken == null
-                || !checkoutToken.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
+                || checkoutToken.isBlank()
+                || checkoutToken.length() > 36) {
 
             throw new IllegalArgumentException(
                     "A valid checkout token is required.");

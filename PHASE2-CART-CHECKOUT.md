@@ -16,23 +16,21 @@ the code. Discounts do not stack. Delivery remains FJ$ 3 for a non-empty cart.
 
 All displayed and saved totals use server product prices and BigDecimal cents:
 `total = groceries subtotal + delivery fee - discount total`.
-The shared order now stores the subtotal, delivery, discount and normalized code,
-and confirmation displays them. Existing orders keep null breakdown fields; no
-historical values are invented. The existing development `ddl-auto=update` setting
-adds the four nullable columns to MySQL; managed environments must apply equivalent
-schema changes before deployment.
+The existing Orders module continues to save the final checkout total. Its model,
+order integration adapter and confirmation template are unchanged from Phase 1.
+The detailed discount breakdown is displayed in the cart and checkout pages.
+No database schema changes are introduced by this phase.
 
 Checkout checks token format, cart freshness, address, current Fiji delivery slots,
 supported payment method, item availability, quantity bounds and promo eligibility
-in the service as well as validating HTTP forms. The order adapter checks line and
-summary arithmetic before persisting or invoking payment and stock changes.
-Existing owner-scoped idempotency, customer locks and transaction rollback remain.
+in the service as well as validating HTTP forms. Existing owner-scoped idempotency, customer locks and transaction rollback remain.
 Payments retain the existing simulation behavior; this phase adds no live payments.
 
 Run with Java 25: `mvn test`. Tests use H2 (including checkout in MySQL compatibility
 mode); live MySQL verification requires a locally configured database. Regression
 coverage includes code normalization/replacement/removal, exact minimum spends,
 rounding, edited carts, malformed API/service submissions, ignored client totals,
-persisted breakdowns, insufficient-stock rollback and concurrent duplicate checkout.
+insufficient-stock rollback and concurrent duplicate checkout. New Phase 2 tests live
+in Phase2CartCheckoutTest and PromoCodesTest; the existing integration tests are unchanged.
 
 Loyalty is deferred so this change stays focused on the required Phase 2 checkout work.
