@@ -164,6 +164,27 @@ class CheckoutIntegrationTest {
     }
 
     @Test
+    void staleCheckoutTokenReturnsToCheckoutWithAnActionableMessage() throws Exception {
+        carts.change(owner, productId, 1);
+        String staleToken = carts.view(owner).token();
+        carts.change(owner, productId, 1);
+
+        mvc.perform(post("/checkout").with(user(owner).roles("CUSTOMER")).with(csrf())
+                        .param("token", staleToken)
+                        .param("address", "1 Victoria Parade, Suva")
+                        .param("deliverySlot", carts.slots().getFirst())
+                        .param("paymentMethod", "M-PAiSA"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("checkout"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "Your basket changed. Review it and place the order again.")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("Page unavailable"))));
+        assertThat(orders.count()).isZero();
+        assertThat(payments.count()).isZero();
+    }
+
+    @Test
     void sameTokenIsScopedToCustomer() {
         String token = UUID.randomUUID().toString();
         var first = checkoutOrders.place(request(owner, token));

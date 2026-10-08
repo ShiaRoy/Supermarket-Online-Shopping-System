@@ -177,3 +177,100 @@
   .orders-page .order-actions .btn,
   .orders-page .order-actions button { width: 100%; text-align: center; }
 }
+
+/* Compact confirmation and refund presentation. */
+.confirmation {
+  max-width: 760px;
+  padding-top: 38px;
+  padding-bottom: 30px;
+}
+
+.confirmation .success {
+  width: 68px;
+  height: 68px;
+  margin-bottom: 14px;
+  font-size: 32px;
+}
+
+.confirmation .cancellation-icon {
+  background: #fbe3df;
+  color: #ad3c2f;
+}
+
+.confirmation .cancellation-panel,
+.confirmation .confirmation-details {
+  padding: 21px 24px;
+  border: 1px solid #e8ded3;
+  box-shadow: 0 8px 22px rgba(38, 75, 60, 0.07);
+}
+
+.confirmation .cancellation-panel h2 {
+  margin: 0 0 6px;
+  color: #9c3529;
+}
+
+.confirmation .cancellation-panel .confirmation-sub {
+  margin: 5px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.confirmation .confirmation-details + .confirmation-details {
+  margin-top: 14px;
+}
+
+.confirmation .detail-line {
+  grid-template-columns: minmax(150px, .75fr) minmax(0, 1.25fr);
+  padding: 11px 0;
+}
+
+.confirmation .confirmation-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.confirmation-status--cancelled { background: #fbe3df; color: #a93429; }
+.confirmation-status--refunded,
+.confirmation-status--paid,
+.confirmation-status--success { background: #ddf4e5; color: #147240; }
+.confirmation-status--pending,
+.confirmation-status--pending_payment { background: #fff0cb; color: #946000; }
+.confirmation-status--failed,
+.confirmation-status--payment_failed { background: #fbe3df; color: #a93429; }
+
+.confirmation .transaction-reference {
+  display: inline-block;
+  max-width: 100%;
+  padding: 5px 7px;
+  border-radius: 7px;
+  background: #f5f2ee;
+  color: #35564f;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.confirmation .paid {
+  margin-top: 4px;
+  padding-top: 15px;
+}
+
+.confirmation .paid > :last-child {
+  font-size: 20px;
+}
+
+@media (max-width: 600px) {
+  .confirmation { padding-top: 30px; }
+  .confirmation .cancellation-panel,
+  .confirmation .confirmation-details { padding: 19px 18px; }
+  .confirmation .detail-line { grid-template-columns: 1fr; gap: 5px; }
+  .confirmation .detail-line > :last-child { text-align: left; }
+}

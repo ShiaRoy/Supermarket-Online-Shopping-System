@@ -272,6 +272,8 @@ class WebFlowTest {
                 .andExpect(content().string(containsString("Cancellation confirmed")))
                 .andExpect(content().string(containsString("Refund details")))
                 .andExpect(content().string(containsString("confirmation-details")))
+                .andExpect(content().string(containsString("confirmation-status--cancelled")))
+                .andExpect(content().string(containsString("transaction-reference")))
                 .andExpect(content().string(containsString("FJ$")));
         mvc.perform(get("/payment-history").with(customerUser(CUSTOMER_EMAIL)))
                 .andExpect(status().isOk())
