@@ -17,6 +17,7 @@
 
   <link rel="stylesheet" th:href="@{/css/auth.css}" />
   <link rel="stylesheet" th:href="@{/css/navigation.css}" />
+  <link rel="stylesheet" th:href="@{/css/accounts-phase2.css}" />
 </head>
 
 <body>
@@ -50,6 +51,12 @@
       </p>
 
 
+      <nav class="account-actions" aria-label="Account tools">
+        <a class="btn btn-outline" th:href="@{/profile/password}">Change password</a>
+        <a class="btn btn-outline" th:href="@{/profile/addresses}">Saved addresses</a>
+        <a class="btn btn-outline" sec:authorize="hasRole('CUSTOMER')" th:href="@{/support}">Customer support</a>
+        <a class="btn btn-outline" sec:authorize="hasAnyRole('STAFF','ADMIN')" th:href="@{/support/manage}">Manage support</a>
+      </nav>
       <p class="profile-role">
         Role:
         <strong th:text="${account.role.name() == 'ADMIN' ? 'Administrator' : #strings.capitalize(#strings.toLowerCase(account.role.name()))}">Customer</strong>
@@ -115,6 +122,12 @@
         </div>
 
 
+        <div class="form-group">
+          <label for="preferredStore">Preferred store</label>
+          <select id="preferredStore" th:field="*{preferredStore}">
+            <option value="">No preference</option><option value="Suva Central">Suva Central</option><option value="Nausori">Nausori</option><option value="Lautoka">Lautoka</option><option value="Nadi">Nadi</option>
+          </select>
+        </div>
         <div class="form-group full">
 
           <label for="deliveryAddress">

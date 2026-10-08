@@ -40,6 +40,8 @@
         </p>
 
 
+        <p role="status" th:if="${param.passwordChanged}">Your password has changed. Please log in again.</p>
+        <p><a class="text-link" th:href="@{/forgot-password}">Forgot password?</a></p>
         <form class="form-grid"
               method="post"
               th:action="@{/login}">

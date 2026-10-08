@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>Bula Basket | Manage customer queries</title>
+<link rel="stylesheet" th:href="@{/css/auth.css}"><link rel="stylesheet" th:href="@{/css/navigation.css}">
+<link rel="stylesheet" th:href="@{/css/accounts-phase2.css}"></head>
+<body><header th:replace="~{fragments :: siteHeader('profile')}"></header>
+<main class="shell"><section class="profile-card"><h1>Manage customer queries</h1><p class="account-notice" role="status" th:if="${param.saved}">Reply saved.</p>
+<div th:object="${replyForm}"><div class="validation full" role="alert" th:if="${#fields.hasErrors('*')}"><p th:each="e : ${#fields.errors('*')}" th:text="${e}"></p></div></div><p th:if="${queries.empty}">No customer queries yet.</p>
+<article class="account-entry" th:each="query : ${queries.content}"><h2 th:text="${query.subject}"></h2><span class="account-badge" th:text="${query.status}"></span>
+<small th:text="${'Query #' + query.id}"></small><p class="preserve-lines" th:text="${query.message}"></p>
+<form class="form-grid" method="post" th:action="@{/support/manage/{id}(id=${query.id})}">
+<div class="form-group"><label th:for="${'reply-' + query.id}">Reply</label><textarea th:id="${'reply-' + query.id}" name="reply" required maxlength="2000" rows="4" th:text="${query.reply}"></textarea></div>
+<div class="form-group"><label th:for="${'status-' + query.id}">Status</label><select name="status" th:id="${'status-' + query.id}"><option th:each="status : ${statuses}" th:value="${status}" th:text="${status}" th:selected="${status == query.status}"></option></select></div>
+<button class="btn" type="submit">Save reply</button></form></article><nav class="account-actions" aria-label="Query pages"><a th:if="${queries.hasPrevious()}" th:href="@{/support/manage(page=${queries.number - 1})}">Previous</a><span th:text="${'Page ' + (queries.number + 1)}"></span><a th:if="${queries.hasNext()}" th:href="@{/support/manage(page=${queries.number + 1})}">Next</a></nav><p><a class="text-link" th:href="@{/profile}">Back to profile</a></p></section></main>
+<footer>Bula Basket · Fresh groceries around Suva · Fiji</footer></body></html>
