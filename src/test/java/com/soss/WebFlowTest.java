@@ -3,6 +3,7 @@ package com.soss;
 import com.soss.controller.product.ProductForm;
 import com.soss.model.Cart;
 import com.soss.model.CheckoutForm;
+import com.soss.model.Order;
 import com.soss.model.Product;
 import com.soss.model.Role;
 import com.soss.model.User;
@@ -17,6 +18,7 @@ import com.soss.repository.UserRepository;
 import com.soss.repository.delivery.DeliveryRepository;
 import com.soss.service.CartService;
 import com.soss.service.CatalogueService;
+import com.soss.service.OrderCancellationService;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +60,8 @@ class WebFlowTest {
     private CartService carts;
     @Autowired
     private CatalogueService catalogue;
+    @Autowired
+    private OrderCancellationService cancellations;
     @Autowired
     private UserRepository users;
     @Autowired
@@ -242,6 +246,32 @@ class WebFlowTest {
         assertEquals(7, catalogue.detail(productId, catalogue.store(null).getId(), true).getQuantity());
         assertEquals(1, payments.count());
         assertEquals(1, deliveries.count());
+    }
+
+    @Test
+    void cancelledOrderHidesTrackingAndShowsTheRecordedRefund() throws Exception {
+        carts.change(CUSTOMER_EMAIL, productId, 1);
+        Cart cart = cartRepository.findByOwner(CUSTOMER_EMAIL).orElseThrow();
+        carts.place(CUSTOMER_EMAIL, checkoutForm(cart));
+        Order order = orders.findByCustomerIdOrderByOrderDateDesc(customerId).getFirst();
+
+        cancellations.cancel(order.getId(), customerId);
+
+        mvc.perform(get("/orders").with(customerUser(CUSTOMER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("CANCELLED")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        containsString("/delivery/track/" + order.getId()))));
+        mvc.perform(get("/orders/" + order.getId() + "/confirmation")
+                        .with(customerUser(CUSTOMER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Cancellation confirmed")))
+                .andExpect(content().string(containsString("Refund details")))
+                .andExpect(content().string(containsString("FJ$")));
+        mvc.perform(get("/payment-history").with(customerUser(CUSTOMER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Simulated refund")))
+                .andExpect(content().string(containsString("REFUNDED")));
     }
 
     @Test

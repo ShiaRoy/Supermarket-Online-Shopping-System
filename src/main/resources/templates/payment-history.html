@@ -16,9 +16,9 @@
         <div class="delivery-cell" data-label="Order"><a th:href="@{/orders/{id}/confirmation(id=${payment.orderId})}" th:text="|Order #${payment.orderId}|">Order #1</a></div>
         <div class="delivery-cell" data-label="Date" th:text="${payment.paymentDate != null ? #temporals.format(payment.paymentDate, 'dd MMM yyyy, h:mm a') : 'Date unavailable'}">Date</div>
         <div class="delivery-cell" data-label="Method" th:text="${payment.paymentMethod != null ? payment.paymentMethod : 'Simulated checkout'}">M-PAiSA</div>
-        <div class="delivery-cell" data-label="Type" th:text="${payment.transactionType}">PAYMENT</div>
+        <div class="delivery-cell" data-label="Type" th:text="${payment.transactionType == T(com.soss.model.PaymentTransactionType).REFUND ? 'Simulated refund' : 'Payment'}">PAYMENT</div>
         <div class="delivery-cell" data-label="Amount" th:text="|FJ$ ${#numbers.formatDecimal(payment.amount, 1, 'COMMA', 2, 'POINT')}|">FJ$ 0.00</div>
-        <div class="delivery-cell" data-label="Status"><span class="status" th:text="${payment.status}">SUCCESS</span></div>
+        <div class="delivery-cell" data-label="Status"><span class="status" th:text="${payment.status}">SUCCESS</span><small class="meta" th:if="${payment.relatedPaymentId != null}" th:text="|Refund for payment #${payment.relatedPaymentId}|"></small></div>
       </article>
     </div>
   </section>
