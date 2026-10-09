@@ -3,6 +3,8 @@ package com.soss;
 import com.soss.controller.product.ProductForm;
 import com.soss.model.*;
 import com.soss.repository.*;
+import com.soss.repository.delivery.DeliveryRepository;
+import com.soss.model.delivery.DeliveryStatus;
 import com.soss.service.*;
 import java.math.BigDecimal;
 import java.util.List;
@@ -36,6 +38,8 @@ class CheckoutIntegrationTest {
     @Autowired CheckoutOrders checkoutOrders;
     @Autowired CatalogueService catalogue;
     @Autowired OrderService orderService;
+    @Autowired OrderCancellationService cancellations;
+    @Autowired OrderReorderService reorders;
     @Autowired UserRepository users;
     @Autowired CartRepository cartRepository;
     @Autowired OrderRepository orders;
@@ -43,6 +47,7 @@ class CheckoutIntegrationTest {
     @Autowired InventoryRepository inventory;
     @Autowired ProductRepository products;
     @Autowired StoreRepository stores;
+    @Autowired DeliveryRepository deliveries;
     @Autowired MockMvc mvc;
 
     private final String owner = "checkout@example.com";
@@ -53,6 +58,7 @@ class CheckoutIntegrationTest {
 
     @BeforeEach
     void setup() {
+        deliveries.deleteAll();
         payments.deleteAll();
         orders.deleteAll();
         cartRepository.deleteAll();
@@ -158,6 +164,27 @@ class CheckoutIntegrationTest {
     }
 
     @Test
+    void staleCheckoutTokenReturnsToCheckoutWithAnActionableMessage() throws Exception {
+        carts.change(owner, productId, 1);
+        String staleToken = carts.view(owner).token();
+        carts.change(owner, productId, 1);
+
+        mvc.perform(post("/checkout").with(user(owner).roles("CUSTOMER")).with(csrf())
+                        .param("token", staleToken)
+                        .param("address", "1 Victoria Parade, Suva")
+                        .param("deliverySlot", carts.slots().getFirst())
+                        .param("paymentMethod", "M-PAiSA"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("checkout"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "Your basket changed. Review it and place the order again.")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("Page unavailable"))));
+        assertThat(orders.count()).isZero();
+        assertThat(payments.count()).isZero();
+    }
+
+    @Test
     void sameTokenIsScopedToCustomer() {
         String token = UUID.randomUUID().toString();
         var first = checkoutOrders.place(request(owner, token));
@@ -199,6 +226,111 @@ class CheckoutIntegrationTest {
         customer(longEmail);
         assertThat(carts.view(longEmail).lines()).isEmpty();
         assertThat(cartRepository.findByOwner(longEmail)).isPresent();
+    }
+
+    @Test
+    void cancellingPaidCheckoutRestoresStockCancelsDeliveryAndRecordsOneRefund() {
+        carts.change(owner, productId, 1);
+        var receipt = carts.place(owner, checkoutForm(carts.view(owner).token()));
+        Order order = orderService.getOrderById(receipt.orderId());
+        assertThat(catalogue.detail(productId, storeId, true).getQuantity()).isEqualTo(9);
+
+        cancellations.cancel(order.getId(), customerId);
+
+        assertThat(orderService.getOrderById(order.getId()).getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(catalogue.detail(productId, storeId, true).getQuantity()).isEqualTo(10);
+        assertThat(deliveries.findByOrderId(order.getId())).isEmpty();
+        assertThat(payments.findByOrderId(order.getId()))
+                .extracting(Payment::getStatus)
+                .containsExactlyInAnyOrder(PaymentStatus.SUCCESS, PaymentStatus.REFUNDED);
+
+        assertThatThrownBy(() -> cancellations.cancel(order.getId(), customerId))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(payments.findByOrderId(order.getId())).hasSize(2);
+        assertThat(catalogue.detail(productId, storeId, true).getQuantity()).isEqualTo(10);
+    }
+
+    @Test
+    void cancellationRefusesAnOrderWhoseDeliveryIsAlreadyOutForDelivery() {
+        carts.change(owner, productId, 1);
+        var receipt = carts.place(owner, checkoutForm(carts.view(owner).token()));
+        Order order = orderService.getOrderById(receipt.orderId());
+        var delivery = deliveries.findByOrderId(order.getId()).orElseThrow();
+        delivery.setStatus(DeliveryStatus.OUT_FOR_DELIVERY);
+        deliveries.saveAndFlush(delivery);
+
+        assertThatThrownBy(() -> cancellations.cancel(order.getId(), customerId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("delivery is in progress");
+        assertThat(orderService.getOrderById(order.getId()).getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(catalogue.detail(productId, storeId, true).getQuantity()).isEqualTo(9);
+        assertThat(payments.findByOrderId(order.getId())).hasSize(1);
+    }
+
+    @Test
+    void reorderMergesHistoricalItemsUsingCurrentPricesWithoutPlacingAnotherOrder() {
+        carts.change(owner, productId, 1);
+        carts.change(owner, productId, 1);
+        var originalReceipt = carts.place(owner, checkoutForm(carts.view(owner).token()));
+        Order original = orderService.getOrderById(originalReceipt.orderId());
+
+        var updated = catalogue.editForm(productId, storeId);
+        updated.setPrice(new BigDecimal("5.25"));
+        catalogue.save(productId, updated);
+        carts.change(owner, productId, 1);
+
+        CartService.ReorderResult result = reorders.reorder(original.getId(), customerId, owner);
+        CartService.Basket basket = carts.view(owner);
+
+        assertThat(result.addedQuantity()).isEqualTo(2);
+        assertThat(result.notices()).isEmpty();
+        assertThat(basket.lines()).singleElement().satisfies(line -> {
+            assertThat(line.quantity()).isEqualTo(3);
+            assertThat(line.unitPrice()).isEqualByComparingTo("5.25");
+        });
+        assertThat(orders.count()).isEqualTo(1);
+        assertThat(payments.count()).isEqualTo(1);
+        assertThat(orderService.getOrderById(original.getId()).getStatus()).isEqualTo(OrderStatus.PAID);
+    }
+
+    @Test
+    void reorderRespectsAvailableStockAndReportsTheAdjustedQuantity() {
+        var limited = catalogue.editForm(productId, storeId);
+        limited.setQuantity(3);
+        catalogue.save(productId, limited);
+        carts.change(owner, productId, 1);
+        carts.change(owner, productId, 1);
+        Order original = orderService.getOrderById(
+                carts.place(owner, checkoutForm(carts.view(owner).token())).orderId());
+
+        CartService.ReorderResult result = reorders.reorder(original.getId(), customerId, owner);
+
+        assertThat(result.addedQuantity()).isEqualTo(1);
+        assertThat(result.notices()).anySatisfy(notice ->
+                assertThat(notice).contains("added 1 of 2"));
+        assertThat(carts.view(owner).lines()).singleElement()
+                .satisfies(line -> assertThat(line.quantity()).isEqualTo(1));
+    }
+
+    @Test
+    void reorderSkipsInactiveAndDeletedHistoricalProductsWithClearNotices() {
+        carts.change(owner, productId, 1);
+        Order original = orderService.getOrderById(
+                carts.place(owner, checkoutForm(carts.view(owner).token())).orderId());
+        var inactive = catalogue.editForm(productId, storeId);
+        inactive.setActive(false);
+        catalogue.save(productId, inactive);
+
+        CartService.ReorderResult inactiveResult = reorders.reorder(original.getId(), customerId, owner);
+        CartService.ReorderResult deletedResult = carts.reorder(owner,
+                List.of(new CartService.ReorderLine(Long.MAX_VALUE, "Removed groceries", 1)));
+
+        assertThat(inactiveResult.addedQuantity()).isZero();
+        assertThat(inactiveResult.notices()).anySatisfy(notice ->
+                assertThat(notice).contains("not currently available"));
+        assertThat(deletedResult.addedQuantity()).isZero();
+        assertThat(deletedResult.notices()).containsExactly("Removed groceries is no longer available.");
+        assertThat(carts.view(owner).lines()).isEmpty();
     }
 
     private User customer(String email) {

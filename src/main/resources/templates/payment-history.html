@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Payment history')}"></head>
+<body>
+<header th:replace="~{fragments :: siteHeader('orders')}"></header>
+<main class="payment-history-page">
+  <div class="payment-page-head">
+    <div><h1 class="section-title">Payment history</h1><p class="meta">Payments and simulated refunds for your orders.</p></div>
+    <a class="btn btn-outline" th:href="@{/orders}">Back to orders</a>
+  </div>
+  <section class="payment-history-card">
+    <p class="meta payment-history-empty" th:if="${#lists.isEmpty(payments)}">No payment activity yet.</p>
+    <div class="payment-table-scroll" th:unless="${#lists.isEmpty(payments)}" tabindex="0" aria-label="Payment history table">
+      <table class="payment-history-table">
+        <thead><tr><th scope="col">Order</th><th scope="col">Date</th><th scope="col">Method</th><th scope="col">Transaction</th><th scope="col">Amount</th><th scope="col">Status</th></tr></thead>
+        <tbody>
+          <tr th:each="payment : ${payments}">
+            <td data-label="Order"><a th:href="@{/orders/{id}/confirmation(id=${payment.orderId})}" th:text="|Order #${payment.orderId}|">Order #1</a></td>
+            <td data-label="Date" th:text="${payment.paymentDate != null ? #temporals.format(payment.paymentDate, 'dd MMM yyyy, h:mm a') : 'Date unavailable'}">Date</td>
+            <td data-label="Method" th:text="${payment.paymentMethod != null ? payment.paymentMethod : 'Simulated checkout'}">M-PAiSA</td>
+            <td data-label="Transaction"><div class="payment-type" th:text="${payment.transactionType == T(com.soss.model.PaymentTransactionType).REFUND ? 'Simulated refund' : 'Payment'}">Payment</div><small class="payment-description" th:if="${payment.relatedPaymentId != null}" th:text="|Refund for payment #${payment.relatedPaymentId}|">Refund for payment #1</small></td>
+            <td class="payment-amount" data-label="Amount" th:text="|FJ$ ${#numbers.formatDecimal(payment.amount, 1, 'COMMA', 2, 'POINT')}|">FJ$ 0.00</td>
+            <td class="payment-status-cell" data-label="Status"><span class="payment-status" th:classappend="${' payment-status--' + #strings.toLowerCase(payment.status.name())}" th:text="${payment.status}">SUCCESS</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body></html>

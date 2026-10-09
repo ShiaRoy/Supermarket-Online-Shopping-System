@@ -38,7 +38,12 @@ public class Order {
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 30, columnDefinition = "varchar(30)")
     private OrderStatus status = OrderStatus.PENDING_PAYMENT;
+
+    /** Set by checkout only after stock has been successfully deducted. */
+    @Column(nullable = false)
+    private boolean inventoryDeducted;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
@@ -116,6 +121,14 @@ public class Order {
 
     public void setStatus(OrderStatus status) {
         this.status = status;
+    }
+
+    public boolean isInventoryDeducted() {
+        return inventoryDeducted;
+    }
+
+    public void setInventoryDeducted(boolean inventoryDeducted) {
+        this.inventoryDeducted = inventoryDeducted;
     }
 
     public List<OrderItem> getItems() {

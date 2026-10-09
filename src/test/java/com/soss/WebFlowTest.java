@@ -3,6 +3,7 @@ package com.soss;
 import com.soss.controller.product.ProductForm;
 import com.soss.model.Cart;
 import com.soss.model.CheckoutForm;
+import com.soss.model.Order;
 import com.soss.model.Product;
 import com.soss.model.Role;
 import com.soss.model.User;
@@ -17,6 +18,7 @@ import com.soss.repository.UserRepository;
 import com.soss.repository.delivery.DeliveryRepository;
 import com.soss.service.CartService;
 import com.soss.service.CatalogueService;
+import com.soss.service.OrderCancellationService;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -58,6 +61,8 @@ class WebFlowTest {
     private CartService carts;
     @Autowired
     private CatalogueService catalogue;
+    @Autowired
+    private OrderCancellationService cancellations;
     @Autowired
     private UserRepository users;
     @Autowired
@@ -176,6 +181,7 @@ class WebFlowTest {
         mvc.perform(get("/checkout").with(customer))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("id=\"site-search\""))))
+                .andExpect(content().string(containsString("name=\"_csrf\"")))
                 .andExpect(content().string(containsString("Delivery details")))
                 .andExpect(content().string(containsString("Pay with")));
     }
@@ -245,6 +251,48 @@ class WebFlowTest {
     }
 
     @Test
+    void cancelledOrderHidesTrackingAndShowsTheRecordedRefund() throws Exception {
+        carts.change(CUSTOMER_EMAIL, productId, 1);
+        Cart cart = cartRepository.findByOwner(CUSTOMER_EMAIL).orElseThrow();
+        carts.place(CUSTOMER_EMAIL, checkoutForm(cart));
+        Order order = orders.findByCustomerIdOrderByOrderDateDesc(customerId).getFirst();
+
+        cancellations.cancel(order.getId(), customerId);
+
+        mvc.perform(get("/orders").with(customerUser(CUSTOMER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("CANCELLED")))
+                .andExpect(content().string(containsString("orders-page")))
+                .andExpect(content().string(containsString(
+                        "/orders/" + order.getId() + "/reorder")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        containsString("/delivery/track/" + order.getId()))));
+        mvc.perform(get("/orders/" + order.getId() + "/confirmation")
+                        .with(customerUser(CUSTOMER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Cancellation confirmed")))
+                .andExpect(content().string(containsString("Refund details")))
+                .andExpect(content().string(containsString("confirmation-details")))
+                .andExpect(content().string(containsString("confirmation-status--cancelled")))
+                .andExpect(content().string(containsString("transaction-reference")))
+                .andExpect(content().string(containsString("FJ$")));
+        mvc.perform(get("/payment-history").with(customerUser(CUSTOMER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Simulated refund")))
+                .andExpect(content().string(containsString("Refund for payment #")))
+                .andExpect(content().string(containsString("payment-history-table")))
+                .andExpect(content().string(containsString("payment-status--refunded")))
+                .andExpect(content().string(containsString("REFUNDED")));
+        mvc.perform(post("/orders/" + order.getId() + "/reorder")
+                        .with(customerUser(CUSTOMER_EMAIL)).with(csrf()))
+                .andExpect(redirectedUrl("/cart"))
+                .andExpect(flash().attributeExists("message"));
+        mvc.perform(get("/cart").with(customerUser(CUSTOMER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Fresh Milk")));
+    }
+
+    @Test
     void customerCannotOpenAnotherCustomersOrderOrDelivery() throws Exception {
         carts.change(CUSTOMER_EMAIL, productId, 1);
         Cart cart = cartRepository.findByOwner(CUSTOMER_EMAIL).orElseThrow();
@@ -260,9 +308,18 @@ class WebFlowTest {
         mvc.perform(get("/orders/customer/" + customerId + "/view")
                         .with(customerUser(OTHER_CUSTOMER_EMAIL)))
                 .andExpect(status().isForbidden());
+        mvc.perform(post("/orders/" + orderId + "/cancel")
+                        .with(customerUser(OTHER_CUSTOMER_EMAIL)).with(csrf()))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/orders/" + orderId + "/reorder")
+                        .with(customerUser(OTHER_CUSTOMER_EMAIL)).with(csrf()))
+                .andExpect(status().isForbidden());
 
         mvc.perform(get("/orders/" + orderId + "/confirmation").with(customerUser(CUSTOMER_EMAIL)))
                 .andExpect(status().isOk());
+        mvc.perform(get("/payment-history").with(customerUser(OTHER_CUSTOMER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Order #" + orderId))));
     }
 
     @Test

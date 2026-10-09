@@ -82,7 +82,13 @@ public class CartController {
             try {
                 // Use the existing Orders confirmation page.
                 return "redirect:/orders/" + carts.place(owner, form).orderId() + "/confirmation";
-            } catch (IllegalArgumentException e) { model.addAttribute("error", e.getMessage()); }
+            } catch (IllegalArgumentException | IllegalStateException exception) {
+                model.addAttribute("error", exception.getMessage());
+            } catch (ResponseStatusException exception) {
+                model.addAttribute("error", exception.getReason() == null
+                        ? "Checkout is temporarily unavailable. Please try again shortly."
+                        : exception.getReason());
+            }
         }
         checkoutModel(owner, model);
         form.setToken(((CartService.Basket)model.getAttribute("basket")).token());

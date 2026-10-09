@@ -9,6 +9,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     List<Payment> findByOrderId(Long orderId);
 
+    List<Payment> findByOrderIdInOrderByPaymentDateDesc(List<Long> orderIds);
+
     /** Expects a transaction reference to identify at most one payment. */
     Optional<Payment> findByTransactionReference(String transactionReference);
 }
