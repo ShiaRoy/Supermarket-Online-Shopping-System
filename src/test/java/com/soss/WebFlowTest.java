@@ -337,18 +337,29 @@ class WebFlowTest {
 
     @Test
     void staffAndDeliveryRolesOnlySeeTheirAllowedManagementPages() throws Exception {
-        deliveries.saveAndFlush(new Delivery(99L, "Suva", null, null));
+        User driverAccount = new User();
+        driverAccount.setFullName("Delivery Driver");
+        driverAccount.setEmail("delivery@example.com");
+        driverAccount.setPhone("9000000");
+        driverAccount.setPasswordHash("unused");
+        driverAccount.setRole(Role.DELIVERY);
+        driverAccount = users.saveAndFlush(driverAccount);
+        Delivery delivery = new Delivery(99L, "Suva", null, null);
+        delivery.setAssignedStaffId(driverAccount.getId());
+        deliveries.saveAndFlush(delivery);
         mvc.perform(get("/inventory").with(user("staff").roles("STAFF")))
                 .andExpect(status().isOk());
         mvc.perform(get("/inventory").with(user("delivery").roles("DELIVERY")))
                 .andExpect(status().isForbidden());
         mvc.perform(get("/delivery/manage").with(user("staff").roles("STAFF")))
                 .andExpect(status().isOk());
-        mvc.perform(get("/delivery/manage").with(user("delivery").roles("DELIVERY")))
+        mvc.perform(get("/delivery/manage").with(user("delivery@example.com").roles("DELIVERY")))
                 .andExpect(status().isOk());
         mvc.perform(get("/delivery/manage").with(user("staff").roles("STAFF")))
                 .andExpect(content().string(containsString("Expected time")))
                 .andExpect(content().string(containsString("Driver")));
+        mvc.perform(get("/delivery/manage").with(user("delivery@example.com").roles("DELIVERY")))
+                .andExpect(content().string(containsString("#99")));
     }
 
     private CheckoutForm checkoutForm(Cart cart) {

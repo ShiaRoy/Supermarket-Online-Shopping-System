@@ -12,6 +12,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByCustomerIdOrderByOrderDateDesc(Long customerId);
+    List<Order> findAllByOrderByOrderDateDesc();
+    List<Order> findTop5ByOrderByOrderDateDesc();
 
     Optional<Order> findByCustomerIdAndCheckoutToken(Long customerId, String checkoutToken);
 

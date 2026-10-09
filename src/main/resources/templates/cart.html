@@ -23,12 +23,21 @@
     <div class="col-lg-5"><section class="panel summary"><h2>Cart summary</h2>
       <div class="summary-row"><span>Subtotal</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.subtotal,1,2)}"></span></div>
       <div class="summary-row"><span>Delivery fee</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.delivery,1,2)}"></span></div>
-      <div class="summary-row" th:if="${basket.discount.signum() > 0}"><span>Promo discount</span><span th:text="'−FJ$ ' + ${#numbers.formatDecimal(basket.discount,1,2)}"></span></div>
-      <form th:action="@{/cart/promo}" method="post" class="promo"><label for="code" class="visually-hidden">Promo code</label><input id="code" name="code" maxlength="32" th:value="${basket.promo}" placeholder="Enter code" class="form-control"><button class="btn apply">Apply</button></form>
-      <small class="muted">BULA10: 10% off groceries. SAVE5: FJ$ 5 off groceries over FJ$ 50 (inclusive). FREEDEL: free delivery over FJ$ 30 (inclusive). One code per cart; clear it to remove it.</small>
-      <div class="summary-row"><span>Delivery fee</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.delivery,1,2)}"></span></div>
-      <div class="summary-row"><span>Discount total</span><span th:text="'−FJ$ ' + ${#numbers.formatDecimal(basket.discount,1,2)}"></span></div>
-      <small class="muted" th:if="${basket.promo != null and basket.discount.signum() == 0}">The applied code is no longer eligible. Add groceries or remove the code before checkout.</small>
+      <section class="available-offers" aria-labelledby="offer-heading">
+        <h3 id="offer-heading">Available offers</h3>
+        <article class="offer-card"><strong>BULA10</strong><span>10% off groceries.</span><small>Eligibility: any grocery order with items.</small></article>
+        <article class="offer-card"><strong>SAVE5</strong><span>FJ$ 5 off groceries.</span><small>Eligibility: grocery subtotal of FJ$ 50 or more (inclusive).</small></article>
+        <article class="offer-card"><strong>FREEDEL</strong><span>Free delivery.</span><small>Eligibility: grocery subtotal of FJ$ 30 or more (inclusive).</small></article>
+      </section>
+      <form th:action="@{/cart/promo}" method="post" class="promo"><label for="code" class="visually-hidden">Promo code</label><input id="code" name="code" maxlength="32" placeholder="Enter another promo code" class="form-control"><button class="btn apply" type="submit">Apply</button></form>
+      <section class="applied-promos" th:if="${!basket.appliedPromos.isEmpty()}" aria-label="Applied promo codes">
+        <h3>Applied offers</h3>
+        <article class="applied-promo" th:each="offer : ${basket.appliedPromos}">
+          <div class="applied-promo-copy"><strong th:text="${offer.code}"></strong><span th:text="${offer.description}"></span><small th:if="${!offer.eligible}" class="promo-ineligible">No longer eligible at this basket value.</small></div>
+          <div class="applied-promo-action"><strong th:if="${offer.amount.signum() > 0}" th:text="'−FJ$ ' + ${#numbers.formatDecimal(offer.amount,1,2)}"></strong><strong th:if="${offer.amount.signum() == 0}" class="muted">FJ$ 0.00</strong><form th:action="@{/cart/promo/remove}" method="post"><input type="hidden" name="code" th:value="${offer.code}"><button class="remove-promo" type="submit" th:aria-label="'Remove promo ' + ${offer.code}">Remove</button></form></div>
+        </article>
+      </section>
+      <div class="summary-row discount-total"><span>Total discounts</span><span th:text="'−FJ$ ' + ${#numbers.formatDecimal(basket.discount,1,2)}"></span></div>
       <div class="summary-row total"><strong>Estimated total</strong><strong th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.total,1,2)}"></strong></div>
       <a class="place-order cart-checkout-link" th:classappend="${basket.lines.isEmpty()} ? 'disabled' : ''" th:href="@{/checkout}">Proceed to checkout</a>
     </section></div>

@@ -160,3 +160,58 @@
   .cart-line .line-price { grid-column: 1 / -1; justify-self: start; }
   .summary { padding: 22px 18px; }
 }
+
+/* Promo stacking presentation, scoped to the existing cart summary. */
+.summary .available-offers,
+.summary .applied-promos {
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid #e3eee8;
+  border-radius: 14px;
+  background: #f9fcfa;
+}
+.summary .available-offers h3,
+.summary .applied-promos h3 {
+  margin: 0 0 10px;
+  color: #155e55;
+  font-size: 15px;
+  font-weight: 700;
+}
+.offer-card {
+  display: grid;
+  grid-template-columns: minmax(74px, auto) minmax(0, 1fr);
+  gap: 2px 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid #e7eee9;
+}
+.offer-card:last-child { border-bottom: 0; padding-bottom: 0; }
+.offer-card strong,
+.applied-promo-copy strong { color: #087266; font-weight: 800; letter-spacing: .03em; }
+.offer-card small { grid-column: 2; color: #766b61; }
+.applied-promo { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid #e7eee9; }
+.applied-promo:last-child { border-bottom: 0; padding-bottom: 0; }
+.applied-promo-copy { display: grid; gap: 3px; min-width: 0; }
+.applied-promo-copy span,
+.applied-promo-copy small { color: #766b61; font-size: 12px; }
+.applied-promo-copy .promo-ineligible { color: #9b4a32; font-weight: 700; }
+.applied-promo-action { display: grid; justify-items: end; gap: 4px; white-space: nowrap; }
+.remove-promo { border: 0; padding: 2px 0; color: #0b6d61; background: transparent; font-size: 12px; text-decoration: underline; cursor: pointer; }
+.discount-total { padding-top: 8px; border-top: 1px solid #eee4da; }
+@media (max-width: 420px) {
+  .summary .available-offers, .summary .applied-promos { padding: 11px; }
+  .applied-promo { align-items: flex-start; }
+  .offer-card { grid-template-columns: 1fr; }
+  .offer-card small { grid-column: 1; }
+}
+.checkout-delivery .structured-address {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+.checkout-delivery .structured-address .address-wide { grid-column: 1 / -1; }
+.checkout-delivery .address-hint { display: block; margin: 8px 0 0; color: #766b61; font-size: 12px; line-height: 1.45; }
+@media (max-width: 576px) {
+  .checkout-delivery .structured-address { grid-template-columns: 1fr; }
+  .checkout-delivery .structured-address .address-wide { grid-column: auto; }
+}

@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Orders and payments overview')}"></head>
+<body><header th:replace="~{fragments :: siteHeader('admin-orders')}"></header>
+<main class="admin-shell"><div class="admin-title"><div><p class="admin-kicker">Administration</p><h1>Orders & payment records</h1><p>Read-only oversight of orders, successful payments and simulated refunds.</p></div><a class="admin-action admin-outline" th:href="@{/admin/dashboard}">Back to dashboard</a></div>
+  <section class="admin-panel"><div class="table-responsive"><table class="admin-table"><thead><tr><th>Order / customer</th><th>Date</th><th>Order total</th><th>Order status</th><th>Payment history</th></tr></thead><tbody>
+    <tr th:each="order : ${orders}"><td><strong th:text="|#${order.id} · ${order.customerName}|">#1</strong><small class="admin-subline" th:text="${order.customerEmail}"></small></td><td th:text="${order.date != null ? #temporals.format(order.date, 'dd MMM yyyy, h:mm a') : '—'}"></td><td th:text="'FJ$ ' + ${#numbers.formatDecimal(order.total,1,2)}"></td><td><span class="admin-status" th:text="${order.status}"></span></td><td><ul class="payment-records"><li th:each="payment : ${order.payments}"><strong th:text="${payment.type + ' · ' + payment.status}"></strong><span th:text="${payment.method + ' · FJ$ ' + #numbers.formatDecimal(payment.amount,1,2)}"></span><small th:text="${payment.reference}"></small></li><li th:if="${#lists.isEmpty(order.payments)}">No payment records</li></ul></td></tr>
+    <tr th:if="${#lists.isEmpty(orders)}"><td colspan="5" class="admin-empty">No orders are recorded.</td></tr>
+  </tbody></table></div></section>
+</main><footer th:replace="~{fragments :: footer}"></footer></body></html>

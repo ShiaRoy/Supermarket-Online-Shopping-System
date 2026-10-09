@@ -22,4 +22,8 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
     List<Delivery> findAllByOrderByUpdatedAtDesc();
 
     List<Delivery> findByStatusOrderByUpdatedAtDesc(DeliveryStatus status);
+
+    List<Delivery> findByAssignedStaffIdOrderByUpdatedAtDesc(Long assignedStaffId);
+
+    List<Delivery> findByAssignedStaffIdAndStatusOrderByUpdatedAtDesc(Long assignedStaffId, DeliveryStatus status);
 }

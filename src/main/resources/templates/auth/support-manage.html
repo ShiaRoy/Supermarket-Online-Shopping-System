@@ -1,16 +1,86 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="referrer" content="no-referrer"><title>Bula Basket | Manage customer queries</title>
-<link rel="stylesheet" th:href="@{/css/auth.css}"><link rel="stylesheet" th:href="@{/css/navigation.css}">
-<link rel="stylesheet" th:href="@{/css/accounts-phase2.css}"></head>
-<body><header th:replace="~{fragments :: siteHeader('profile')}"></header>
-<main class="shell"><section class="profile-card"><h1>Manage customer queries</h1><p class="account-notice" role="status" th:if="${param.saved}">Reply saved.</p>
-<div th:object="${replyForm}"><div class="validation full" role="alert" th:if="${#fields.hasErrors('*')}"><p th:each="e : ${#fields.errors('*')}" th:text="${e}"></p></div></div><p th:if="${queries.empty}">No customer queries yet.</p>
-<article class="account-entry" th:each="query : ${queries.content}"><h2 th:text="${query.subject}"></h2><span class="account-badge" th:text="${query.status}"></span>
-<small th:text="${'Query #' + query.id}"></small><p class="preserve-lines" th:text="${query.message}"></p>
-<form class="form-grid" method="post" th:action="@{/support/manage/{id}(id=${query.id})}">
-<div class="form-group"><label th:for="${'reply-' + query.id}">Reply</label><textarea th:id="${'reply-' + query.id}" name="reply" required maxlength="2000" rows="4" th:text="${query.reply}"></textarea></div>
-<div class="form-group"><label th:for="${'status-' + query.id}">Status</label><select name="status" th:id="${'status-' + query.id}"><option th:each="status : ${statuses}" th:value="${status}" th:text="${status}" th:selected="${status == query.status}"></option></select></div>
-<button class="btn" type="submit">Save reply</button></form></article><nav class="account-actions" aria-label="Query pages"><a th:if="${queries.hasPrevious()}" th:href="@{/support/manage(page=${queries.number - 1})}">Previous</a><span th:text="${'Page ' + (queries.number + 1)}"></span><a th:if="${queries.hasNext()}" th:href="@{/support/manage(page=${queries.number + 1})}">Next</a></nav><p><a class="text-link" th:href="@{/profile}">Back to profile</a></p></section></main>
-<footer>Bula Basket · Fresh groceries around Suva · Fiji</footer></body></html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Bula Basket | Manage customer queries</title>
+  <link rel="stylesheet" th:href="@{/css/auth.css}">
+  <link rel="stylesheet" th:href="@{/css/navigation.css}">
+  <link rel="stylesheet" th:href="@{/css/accounts-phase2.css}">
+</head>
+<body>
+<header th:replace="~{fragments :: siteHeader('support')}"></header>
+
+<main class="shell support-manage-shell">
+  <header class="support-manage-head">
+    <div>
+      <p class="support-kicker">Customer care · Operations</p>
+      <h1>Support requests</h1>
+      <p>Review customer questions and keep replies and statuses up to date.</p>
+    </div>
+    <div class="support-page-actions">
+      <a class="support-back-link" sec:authorize="hasRole('ADMIN')" th:href="@{/admin/dashboard}">Admin dashboard</a>
+      <a class="support-back-link" th:href="@{/profile}">Profile</a>
+    </div>
+  </header>
+
+  <p class="support-success" role="status" th:if="${param.saved}">Reply saved.</p>
+  <div th:object="${replyForm}">
+    <div class="support-validation" th:if="${#fields.hasErrors('*')}" role="alert">
+      <p th:each="error : ${#fields.errors('*')}" th:text="${error}"></p>
+    </div>
+  </div>
+
+  <p class="support-empty" th:if="${queries.empty}">There are no customer queries yet.</p>
+
+  <article class="support-ticket" th:each="query : ${queries.content}">
+    <header class="support-ticket-head">
+      <div>
+        <h2 th:text="${query.subject}">Support query</h2>
+        <p th:text="|Query #${query.id}|">Query #1</p>
+      </div>
+      <span class="support-status"
+            th:classappend="${'support-status-' + query.status.name().toLowerCase()}"
+            th:text="${#strings.replace(query.status.name(), '_', ' ')}">OPEN</span>
+    </header>
+
+    <section class="support-conversation" aria-label="Customer question and reply">
+      <div class="support-message support-customer-message">
+        <h3>Customer question</h3>
+        <p class="preserve-lines" th:text="${query.message}">Customer's original question</p>
+      </div>
+      <div class="support-message support-staff-message">
+        <h3>Staff reply</h3>
+        <p class="preserve-lines" th:if="${query.reply != null and !query.reply.isBlank()}" th:text="${query.reply}">Staff response</p>
+        <p class="support-no-reply" th:unless="${query.reply != null and !query.reply.isBlank()}">No response has been sent yet.</p>
+      </div>
+    </section>
+
+    <form class="support-response-form" method="post" th:action="@{/support/manage/{id}(id=${query.id})}">
+      <div class="support-reply-field">
+        <label th:for="${'reply-' + query.id}">Reply</label>
+        <textarea th:id="${'reply-' + query.id}" name="reply" required maxlength="2000" rows="3" th:text="${query.reply}"></textarea>
+      </div>
+      <div class="support-response-controls">
+        <div class="support-status-field">
+          <label th:for="${'status-' + query.id}">Status</label>
+          <select name="status" th:id="${'status-' + query.id}">
+            <option th:each="status : ${statuses}" th:value="${status}" th:text="${status}" th:selected="${status == query.status}"></option>
+          </select>
+        </div>
+        <button class="btn support-save-button" type="submit">Save reply</button>
+      </div>
+    </form>
+  </article>
+
+  <nav class="support-pagination" th:if="${queries.totalPages > 1}" aria-label="Support request pages">
+    <a class="support-page-link" th:if="${queries.hasPrevious()}" th:href="@{/support/manage(page=${queries.number - 1})}">Previous</a>
+    <span th:text="|Page ${queries.number + 1} of ${queries.totalPages}|">Page 1 of 2</span>
+    <a class="support-page-link" th:if="${queries.hasNext()}" th:href="@{/support/manage(page=${queries.number + 1})}">Next</a>
+  </nav>
+</main>
+
+<footer>Bula Basket · Fresh groceries around Suva · Fiji</footer>
+</body>
+</html>

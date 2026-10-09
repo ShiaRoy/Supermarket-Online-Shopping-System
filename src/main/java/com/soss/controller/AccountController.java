@@ -39,15 +39,13 @@ public String customerArea(Model m) {
 }
 //display the staff access page.
 @GetMapping("/staff")
-public String staffArea(Model m) {
-    m.addAttribute("area", "staff");
-    return "auth/access";
+public String staffArea() {
+    return "redirect:/inventory";
 }
 //display the admin access page.
 @GetMapping("/admin")
-public String adminArea(Model m) {
-    m.addAttribute("area", "admin");
-    return "auth/access";
+public String adminArea() {
+    return "redirect:/admin/dashboard";
 }
 
  @GetMapping("/access-denied")

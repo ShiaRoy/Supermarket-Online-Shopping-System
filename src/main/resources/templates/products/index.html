@@ -3,15 +3,51 @@
 <head th:replace="~{products/fragments :: head('Products')}"></head>
 <body data-page="home">
 <header th:replace="~{fragments :: siteHeader('products')}"></header>
-<main class="shell">
-  <div class="search-head"><h1 class="section-title">Products</h1><span class="meta" th:text="|${#lists.size(items)} items|"></span></div>
+<main class="shell catalogue-shell">
+  <div class="search-head catalogue-heading"><h1 class="section-title">Products</h1><span class="catalogue-count" th:text="|${#lists.size(items)} ${#lists.size(items) == 1 ? 'item' : 'items'}|"></span></div>
   <p class="catalogue-message" th:if="${message}" role="status" th:text="${message}"></p>
   <p th:if="${#lists.isEmpty(stores)}" class="empty-state">The catalogue is not available yet.</p>
   <div class="search-layout" th:unless="${#lists.isEmpty(stores)}">
+    <nav class="catalogue-categories" aria-label="Shop by category">
+      <span class="catalogue-categories-label">Shop by category</span>
+      <a class="catalogue-category-link" th:classappend="${category == null or category.isBlank()} ? ' selected' : ''"
+         th:attr="aria-current=${category == null or category.isBlank()} ? 'true' : null"
+         th:href="@{/products(storeId=${store.id},q=${q},category='',sort=${sort},min=${min},max=${max},availability=${availability})}">
+        All products <span th:text="${matchingCount}">0</span>
+      </a>
+      <a class="catalogue-category-link" th:each="cat : ${categories}"
+         th:classappend="${category == cat} ? ' selected' : ''"
+         th:attr="aria-current=${category == cat} ? 'true' : null"
+         th:href="@{/products(storeId=${store.id},q=${q},category=${cat},sort=${sort},min=${min},max=${max},availability=${availability})}">
+        <span th:text="${cat}">Produce</span><span class="catalogue-category-count" th:text="${categoryCounts[cat]}">0</span>
+      </a>
+    </nav>
     <form class="catalogue-controls" method="get" th:action="@{/products}">
-      <div class="catalogue-toolbar"><label class="visually-hidden" for="catalogue-query">Search products</label><input id="catalogue-query" name="q" type="search" maxlength="120" th:value="${q}" placeholder="Search groceries..."><details class="catalogue-filters"><summary>Filters</summary><div th:replace="~{products/fragments :: filters}"></div></details><button class="visually-hidden" type="submit">Search</button></div>
+      <input type="hidden" name="category" th:value="${category}">
+      <div class="catalogue-toolbar">
+        <label class="visually-hidden" for="catalogue-query">Search groceries</label>
+        <input id="catalogue-query" name="q" type="search" maxlength="120" th:value="${q}" placeholder="Search groceries...">
+        <button class="catalogue-filter-toggle" type="button" aria-expanded="false" aria-controls="catalogue-filter-panel">Advanced filters</button>
+        <button class="visually-hidden" type="submit">Search</button>
+      </div>
+      <div id="catalogue-filter-panel" class="catalogue-filter-panel" hidden>
+        <div th:replace="~{products/fragments :: filters}"></div>
+      </div>
     </form>
-    <div th:replace="~{products/fragments :: cards}"></div>
+    <div class="catalogue-category-sections" th:if="${category == null or category.isBlank()}">
+      <section class="catalogue-category-section" th:each="group : ${categoryGroups}">
+        <header class="catalogue-category-heading">
+          <h2 th:text="${group.key}">Produce</h2>
+          <span th:text="|${#lists.size(group.value)} ${#lists.size(group.value) == 1 ? 'item' : 'items'}|">0 items</span>
+        </header>
+        <div th:replace="~{products/fragments :: cards(${group.value})}"></div>
+      </section>
+      <p class="empty-state" th:if="${#lists.isEmpty(items)}">No products match your search and filters. Try adjusting them or choose another category.</p>
+    </div>
+    <section class="catalogue-selected-category" th:if="${category != null and !category.isBlank()}">
+      <header class="catalogue-category-heading"><h2 th:text="${category}">Category</h2></header>
+      <div th:replace="~{products/fragments :: cards(${items})}"></div>
+    </section>
   </div>
 </main>
 <footer th:replace="~{products/fragments :: footer}"></footer>

@@ -80,7 +80,7 @@ class Phase2CartCheckoutTest {
 
 
     @Test
-    void promoCodesNormalizeReplaceRemoveAndRecalculate() {
+    void promoCodesStackNormalizeRemoveIndividuallyAndRecalculate() {
         Long expensive = catalogue.save(null, productForm("Basket", "50.00", 10)).getId();
         carts.change(owner, expensive, 1);
         carts.promo(owner, "  save5  ");
@@ -88,22 +88,27 @@ class Phase2CartCheckoutTest {
         assertThat(carts.view(owner).discount()).isEqualByComparingTo("5.00");
         assertThat(carts.view(owner).total()).isEqualByComparingTo("48.00");
         String token = carts.view(owner).token();
-        carts.promo(owner, "SAVE5");
+        assertThatThrownBy(() -> carts.promo(owner, "SAVE5"))
+                .hasMessageContaining("already applied");
         assertThat(carts.view(owner).token()).isEqualTo(token);
         assertThatThrownBy(() -> carts.promo(owner, "wrong"))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThat(carts.view(owner).promo()).isEqualTo("SAVE5");
         carts.promo(owner, "freedel");
-        assertThat(carts.view(owner).discount()).isEqualByComparingTo("3.00");
-        assertThat(carts.view(owner).total()).isEqualByComparingTo("50.00");
+        assertThat(carts.view(owner).promo()).isEqualTo("SAVE5,FREEDEL");
+        assertThat(carts.view(owner).discount()).isEqualByComparingTo("8.00");
         carts.promo(owner, "BULA10");
+        assertThat(carts.view(owner).discount()).isEqualByComparingTo("13.00");
         carts.change(owner, expensive, 1);
-        assertThat(carts.view(owner).discount()).isEqualByComparingTo("10.00");
-        carts.promo(owner, "   ");
+        assertThat(carts.view(owner).discount()).isEqualByComparingTo("18.00");
+        assertThat(carts.view(owner).total()).isEqualByComparingTo("85.00");
+        carts.removePromo(owner, "FREEDEL");
+        assertThat(carts.view(owner).promo()).isEqualTo("SAVE5,BULA10");
+        assertThat(carts.view(owner).discount()).isEqualByComparingTo("15.00");
+        carts.removePromo(owner, "BULA10");
+        carts.removePromo(owner, "SAVE5");
         assertThat(carts.view(owner).promo()).isNull();
         assertThat(carts.view(owner).total()).isEqualByComparingTo("103.00");
     }
-
     @Test
     void minimumSpendIsCheckedAtApplyAndCheckout() {
         carts.change(owner, productId, 1);
@@ -132,7 +137,7 @@ class Phase2CartCheckoutTest {
         form.setToken(basket.token());
         form.setAddress("   ");
         assertThatThrownBy(() -> carts.place(owner, form)).hasMessageContaining("address");
-        form.setAddress("Test address");
+        form.setAddress("12 Test Road, Suva");
         form.setDeliverySlot("2000-01-01 | 10am – 12pm");
         assertThatThrownBy(() -> carts.place(owner, form)).hasMessageContaining("delivery time");
         form.setDeliverySlot(carts.slots().getFirst());
@@ -156,7 +161,7 @@ class Phase2CartCheckoutTest {
         assertThat(orders.count()).isZero();
         mvc.perform(post("/api/checkout").with(user(owner).roles("CUSTOMER")).with(csrf())
                 .contentType("application/json").content("""
-                    {"token":"%s","address":"Test address","deliverySlot":"%s",
+                    {"token":"%s","address":"12 Test Road, Suva","deliverySlot":"%s",
                      "paymentMethod":"MyCash","total":0,"discount":999,"unitPrice":0}
                     """.formatted(token, carts.slots().getFirst()))).andExpect(status().isOk());
         assertThat(orders.findByCustomerIdAndCheckoutToken(customerId, token).orElseThrow()
@@ -207,7 +212,7 @@ class Phase2CartCheckoutTest {
     private CheckoutForm checkoutForm(String token) {
         CheckoutForm form = new CheckoutForm();
         form.setToken(token);
-        form.setAddress("Test address");
+        form.setAddress("12 Test Road, Suva");
         form.setDeliverySlot(carts.slots().getFirst());
         form.setPaymentMethod("M-PAiSA");
         return form;

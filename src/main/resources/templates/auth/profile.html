@@ -55,7 +55,6 @@
         <a class="btn btn-outline" th:href="@{/profile/password}">Change password</a>
         <a class="btn btn-outline" th:href="@{/profile/addresses}">Saved addresses</a>
         <a class="btn btn-outline" sec:authorize="hasRole('CUSTOMER')" th:href="@{/support}">Customer support</a>
-        <a class="btn btn-outline" sec:authorize="hasAnyRole('STAFF','ADMIN')" th:href="@{/support/manage}">Manage support</a>
       </nav>
       <p class="profile-role">
         Role:

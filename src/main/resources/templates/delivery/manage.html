@@ -25,7 +25,8 @@
   <main><section class="shell delivery-management-shell">
     <div class="inventory-page-head"><div>
       <h1 class="section-title">Manage deliveries</h1>
-      <p class="meta">Move each delivery to its next stage as it progresses.</p>
+      <p class="meta" th:if="${deliveryUser}">Only deliveries assigned to your account are shown.</p>
+      <p class="meta" th:unless="${deliveryUser}">Prepare orders, assign delivery personnel and monitor progress.</p>
     </div></div>
 
     <div class="delivery-note" th:if="${message}" th:text="${message}" style="margin-bottom:16px">Delivery status updated.</div>
@@ -74,23 +75,28 @@
           <div class="delivery-cell delivery-actions" data-label="Actions">
             <span class="delivery-subnote problem" th:if="${d.cancelledAt != null}">Cancelled (order cancelled)</span>
             <th:block th:if="${d.cancelledAt == null}">
-              <!-- Confirmed -> Packed, and Packed -> Out for delivery (needs a driver) -->
-              <form th:if="${d.status.next() != null and d.status.next().name() != 'DELIVERED'}" th:action="@{/delivery/{id}/status(id=${d.id})}" method="post">
+              <!-- Store staff prepare confirmed orders by marking them Packed. -->
+              <form th:if="${d.status.name() == 'CONFIRMED'}" sec:authorize="hasAnyRole('STAFF', 'ADMIN')" th:action="@{/delivery/{id}/status(id=${d.id})}" method="post">
                 <input type="hidden" name="status" th:value="${d.status.next().name()}" />
                 <button type="submit" class="btn btn-small"
-                        th:disabled="${d.status.next().name() == 'OUT_FOR_DELIVERY' and d.assignedStaffId == null}"
                         th:text="'Mark as ' + ${d.status.next().label}">Mark as Packed</button>
               </form>
-              <small class="delivery-subnote problem"
-                     th:if="${d.status.next() != null and d.status.next().name() == 'OUT_FOR_DELIVERY' and d.assignedStaffId == null}">Assign a driver first</small>
+              <!-- Assigned delivery personnel take packed orders out for delivery. -->
+              <form th:if="${d.status.name() == 'PACKED'}" sec:authorize="hasAnyRole('ADMIN', 'DELIVERY')" th:action="@{/delivery/{id}/status(id=${d.id})}" method="post">
+                <input type="hidden" name="status" value="OUT_FOR_DELIVERY" />
+                <button type="submit" class="btn btn-small"
+                        th:disabled="${d.assignedStaffId == null}"
+                        th:text="'Mark as ' + ${d.status.next().label}">Mark as Out for delivery</button>
+              </form>
+              <small class="delivery-subnote problem" th:if="${d.status.name() == 'PACKED' and d.assignedStaffId == null}" sec:authorize="hasAnyRole('ADMIN', 'DELIVERY')">Assign a driver first</small>
 
               <!-- Out for delivery: record who received it, or report a failed attempt -->
-              <form class="delivery-handover-form" th:if="${d.status.name() == 'OUT_FOR_DELIVERY'}" th:action="@{/delivery/{id}/status(id=${d.id})}" method="post">
+              <form class="delivery-handover-form" th:if="${d.status.name() == 'OUT_FOR_DELIVERY'}" sec:authorize="hasAnyRole('ADMIN', 'DELIVERY')" th:action="@{/delivery/{id}/status(id=${d.id})}" method="post">
                 <input type="hidden" name="status" value="DELIVERED" />
                 <input type="text" name="receivedBy" maxlength="100" placeholder="Received by" aria-label="Received by" required />
                 <button type="submit" class="btn btn-small">Mark as Delivered</button>
               </form>
-              <form class="delivery-handover-form" th:if="${d.status.name() == 'OUT_FOR_DELIVERY'}" th:action="@{/delivery/{id}/failed(id=${d.id})}" method="post">
+              <form class="delivery-handover-form" th:if="${d.status.name() == 'OUT_FOR_DELIVERY'}" sec:authorize="hasAnyRole('ADMIN', 'DELIVERY')" th:action="@{/delivery/{id}/failed(id=${d.id})}" method="post">
                 <input type="text" name="reason" maxlength="255" placeholder="Reason" aria-label="Reason for failed attempt" required />
                 <button type="submit" class="btn btn-outline btn-small">Failed attempt</button>
               </form>

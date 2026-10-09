@@ -132,6 +132,60 @@ class CheckoutIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("SUCCESS"));
     }
 
+
+    @Test
+    void stackedPromotionsReachPaymentAndRefundAmountsWithoutChangingTheirPolicy() {
+        Long basketProduct = catalogue.save(null, productForm("Family Basket", "50.00", 10)).getId();
+        carts.change(owner, basketProduct, 1);
+        carts.promo(owner, "BULA10");
+        carts.promo(owner, "SAVE5");
+        carts.promo(owner, "FREEDEL");
+        var basket = carts.view(owner);
+        assertThat(basket.discount()).isEqualByComparingTo("13.00");
+        assertThat(basket.total()).isEqualByComparingTo("40.00");
+
+        var receipt = carts.place(owner, checkoutForm(basket.token()));
+        Order order = orderService.getOrderById(receipt.orderId());
+        assertThat(order.getTotalAmount()).isEqualByComparingTo("40.00");
+        assertThat(payments.findByOrderId(order.getId()).getFirst().getAmount())
+                .isEqualByComparingTo("40.00");
+
+        cancellations.cancel(order.getId(), customerId);
+        assertThat(payments.findByOrderId(order.getId()))
+                .filteredOn(payment -> payment.getTransactionType() == PaymentTransactionType.REFUND)
+                .singleElement().satisfies(refund -> assertThat(refund.getAmount()).isEqualByComparingTo("40.00"));
+        assertThat(catalogue.detail(basketProduct, storeId, true).getQuantity()).isEqualTo(10);
+    }
+
+    @Test
+    void checkoutAcceptsStructuredAddressAndRejectsMeaninglessAddress() throws Exception {
+        carts.change(owner, productId, 1);
+        String token = carts.view(owner).token();
+        mvc.perform(post("/checkout").with(user(owner).roles("CUSTOMER")).with(csrf())
+                        .param("token", token)
+                        .param("deliverySlot", carts.slots().getFirst())
+                        .param("paymentMethod", "M-PAiSA")
+                        .param("deliveryArea", "Suva")
+                        .param("street", "Victoria Parade")
+                        .param("buildingNumber", "12"))
+                .andExpect(status().is3xxRedirection());
+        Order placed = orders.findByCustomerIdOrderByOrderDateDesc(customerId).getFirst();
+        assertThat(deliveries.findByOrderId(placed.getId()).orElseThrow().getDeliveryAddress())
+                .isEqualTo("12 Victoria Parade, Suva");
+
+        carts.change(owner, productId, 1);
+        mvc.perform(post("/checkout").with(user(owner).roles("CUSTOMER")).with(csrf())
+                        .param("token", carts.view(owner).token())
+                        .param("deliverySlot", carts.slots().getFirst())
+                        .param("paymentMethod", "M-PAiSA")
+                        .param("deliveryArea", "Suva")
+                        .param("street", "sdfghj")
+                        .param("buildingNumber", "12"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("checkout"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Enter a valid street or road name.")));
+        assertThat(orders.count()).isEqualTo(1);
+    }
     @Test
     void insufficientStockRollsBackOrderPaymentStockAndCart() {
         Long scarce = catalogue.save(null, productForm("Bread", "2.00", 1)).getId();
@@ -364,14 +418,14 @@ class CheckoutIntegrationTest {
     private CheckoutForm checkoutForm(String token) {
         CheckoutForm form = new CheckoutForm();
         form.setToken(token);
-        form.setAddress("Test address");
+        form.setAddress("12 Test Road, Suva");
         form.setDeliverySlot(carts.slots().getFirst());
         form.setPaymentMethod("M-PAiSA");
         return form;
     }
 
     private CheckoutOrders.Request request(String email, String token) {
-        return new CheckoutOrders.Request(email, token, "Test address", carts.slots().getFirst(),
+        return new CheckoutOrders.Request(email, token, "12 Test Road, Suva", carts.slots().getFirst(),
                 "M-PAiSA", "FJD", new BigDecimal("4.50"), new BigDecimal("3.00"),
                 BigDecimal.ZERO, new BigDecimal("7.50"), null,
                 List.of(new CheckoutOrders.Item(productId, "Milk", 1,

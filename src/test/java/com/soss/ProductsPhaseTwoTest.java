@@ -54,6 +54,13 @@ class ProductsPhaseTwoTest {
         PromotionForm form = new PromotionForm(); form.setProductId(productId); form.setName("Milk special");
         form.setPercentOff(new BigDecimal("20")); form.setStartsOn(start); form.setEndsOn(end); return form;
     }
+    ProductForm productForm(String name, String price, int quantity) {
+        ProductForm form = new ProductForm();
+        form.setStoreId(storeId); form.setName(name); form.setCategory("Dairy");
+        form.setDescription(name); form.setPrice(new BigDecimal(price)); form.setIcon("basket");
+        form.setQuantity(quantity); form.setLowStockThreshold(2);
+        return form;
+    }
     @Test void thresholdsAndAlertsAreStoreSpecificAndIncludeZero() throws Exception {
         assertThat(catalogue.detail(productId, storeId, true).isLowStock()).isFalse();
         ProductForm form = catalogue.editForm(productId, storeId); form.setLowStockThreshold(8);
@@ -112,6 +119,57 @@ class ProductsPhaseTwoTest {
             .andExpect(content().string(containsString("Phase Two Milk")));
         mvc.perform(get("/products/" + productId).param("storeId", storeId.toString()))
             .andExpect(status().isOk()).andExpect(content().string(containsString("FJ$ 8.00")));
+    }
+    @Test void catalogueCombinesCategorySearchAndPriceSorting() throws Exception {
+        catalogue.save(null, productForm("Cheese", "5.00", 5));
+        ProductForm produce = productForm("Apple", "2.00", 5);
+        produce.setCategory("Produce");
+        catalogue.save(null, produce);
+
+        String ascending = mvc.perform(get("/products").param("category", "Dairy")
+                        .param("q", "").param("sort", "price-asc"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("Cheese")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Apple"))))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(ascending.indexOf("Cheese")).isLessThan(ascending.indexOf("Phase Two Milk"));
+
+        String descending = mvc.perform(get("/products").param("category", "Dairy")
+                        .param("q", "Milk").param("sort", "price-desc"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("Phase Two Milk")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Cheese"))))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(descending).contains("Phase Two Milk");
+
+        String grouped = mvc.perform(get("/products").param("storeId", storeId.toString()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(grouped).contains("Shop by category", "Dairy", "Produce", "All products");
+    }
+
+    @Test void catalogueCategorySearchPriceAvailabilityAndSortFiltersWorkTogether() throws Exception {
+        ProductForm juice = productForm("Juice", "8.00", 5);
+        juice.setCategory("Beverages");
+        catalogue.save(null, juice);
+        ProductForm tea = productForm("Tea", "5.00", 5);
+        tea.setCategory("Beverages");
+        catalogue.save(null, tea);
+        ProductForm soda = productForm("Soda", "11.00", 5);
+        soda.setCategory("Beverages");
+        catalogue.save(null, soda);
+
+        String result = mvc.perform(get("/products")
+                        .param("storeId", storeId.toString())
+                        .param("q", "")
+                        .param("category", "Beverages")
+                        .param("min", "7")
+                        .param("max", "10")
+                        .param("availability", "in")
+                        .param("sort", "price-asc"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Juice")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Tea"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Soda"))))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(result).contains("Beverages", "1 item", "min=7", "max=10", "availability=in", "sort=price-asc");
     }
     @Test void promotionWindowsDisabledStateAndHiddenProductAreRespected() {
         LocalDate today = promotions.today();

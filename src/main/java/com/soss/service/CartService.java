@@ -24,7 +24,8 @@ public class CartService {
 
     public record Line(Long id, String name, String icon, int quantity, BigDecimal unitPrice, BigDecimal total) {}
     public record Basket(List<Line> lines, BigDecimal subtotal, BigDecimal delivery,
-                         BigDecimal discount, BigDecimal total, String promo, String token, int count) {}
+                         BigDecimal discount, BigDecimal total, String promo, String token, int count,
+                         List<PromoCodes.PromoDiscount> appliedPromos) {}
     /** A historical order line supplied by the Orders module for a customer-requested reorder. */
     public record ReorderLine(Long productId, String productName, Integer quantity) {}
     /** The result distinguishes added lines from items skipped or adjusted against live stock. */
@@ -75,9 +76,13 @@ public class CartService {
         });
         BigDecimal subtotal = lines.stream().map(Line::total).reduce(new BigDecimal("0.00"), BigDecimal::add);
         BigDecimal delivery = new BigDecimal(lines.isEmpty() ? "0.00" : "3.00");
-        BigDecimal discount = PromoCodes.discount(cart.promo, subtotal, delivery);
-        return new Basket(List.copyOf(lines), subtotal, delivery, discount, subtotal.add(delivery).subtract(discount),
-            cart.promo, cart.checkoutToken, lines.size());
+        List<PromoCodes.PromoDiscount> appliedPromos = PromoCodes.breakdown(cart.promo, subtotal, delivery);
+        BigDecimal discount = appliedPromos.stream().map(PromoCodes.PromoDiscount::amount)
+                .reduce(new BigDecimal("0.00"), BigDecimal::add)
+                .min(subtotal.add(delivery)).max(BigDecimal.ZERO);
+        BigDecimal total = subtotal.add(delivery).subtract(discount).max(BigDecimal.ZERO);
+        return new Basket(List.copyOf(lines), subtotal, delivery, discount, total,
+                cart.promo, cart.checkoutToken, lines.size(), appliedPromos);
     }
 
     @Transactional
@@ -167,14 +172,19 @@ public class CartService {
     public void promo(String owner, String code) {
         Cart cart = locked(owner);
         String normalized = PromoCodes.normalize(code);
+        if (normalized == null) throw new IllegalArgumentException("Enter a promo code.");
         Basket basket = calculate(cart);
-        PromoCodes.discount(normalized, basket.subtotal(), basket.delivery());
         PromoCodes.requireEligible(normalized, basket.subtotal());
-        if (Objects.equals(cart.promo, normalized)) return;
-        cart.promo = normalized;
+        cart.promo = PromoCodes.append(cart.promo, normalized);
         cart.checkoutToken = UUID.randomUUID().toString();
     }
 
+    @Transactional
+    public void removePromo(String owner, String code) {
+        Cart cart = locked(owner);
+        cart.promo = PromoCodes.remove(cart.promo, code);
+        cart.checkoutToken = UUID.randomUUID().toString();
+    }
     @Transactional
     public CheckoutOrders.Receipt place(String owner, CheckoutForm form) {
         if (form == null) throw new IllegalArgumentException("Checkout details are required.");
@@ -186,8 +196,13 @@ public class CartService {
         if (existing.isPresent()) return existing.get();
         if (!cart.checkoutToken.equals(form.getToken()))
             throw new IllegalArgumentException("Your basket changed. Review it and place the order again.");
-        if (form.getAddress() == null || form.getAddress().strip().isBlank() || form.getAddress().length() > 255)
-            throw new IllegalArgumentException("Enter a delivery address (maximum 255 characters).");
+        boolean hasStructuredAddress = form.getDeliveryArea() != null || form.getStreet() != null
+                || form.getBuildingNumber() != null || form.getDeliveryInstructions() != null;
+        if (form.getSavedAddressId() == null && hasStructuredAddress) {
+            form.setAddress(DeliveryAddressPolicy.compose(form.getDeliveryArea(), form.getStreet(),
+                    form.getBuildingNumber(), form.getDeliveryInstructions()));
+        }
+        form.setAddress(DeliveryAddressPolicy.validate(form.getAddress()));
         if (form.getDeliverySlot() == null || !slots().contains(form.getDeliverySlot())) throw new IllegalArgumentException("Choose an available delivery time.");
         if (form.getPaymentMethod() == null || !PAYMENTS.contains(form.getPaymentMethod())) throw new IllegalArgumentException("Choose a payment method.");
         for (Long id : cart.quantities.keySet()) {

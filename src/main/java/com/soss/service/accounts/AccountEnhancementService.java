@@ -38,6 +38,11 @@ public class AccountEnhancementService {
         return addresses.findByOwnerIdOrderByIdAsc(owner(email).getId());
     }
     @Transactional(readOnly=true)
+    public String addressForCheckout(String email, Long id) {
+        return ownedAddress(id, owner(email)).getAddress();
+    }
+
+    @Transactional(readOnly=true)
     public AddressForm addressForm(String email, Long id) {
         SavedAddress address = ownedAddress(id, owner(email));
         AddressForm form = new AddressForm(); form.setLabel(address.getLabel()); form.setAddress(address.getAddress());

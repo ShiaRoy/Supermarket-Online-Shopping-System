@@ -81,11 +81,11 @@
 </span>
 
 
-<div th:fragment="cards"
+<div th:fragment="cards(productItems)"
      class="products search-products">
 
   <article class="product-card"
-           th:each="item : ${items}">
+           th:each="item : ${productItems}">
 
     <div class="product-visual">
 
@@ -157,7 +157,7 @@
 
 
   <p class="empty-state"
-     th:if="${#lists.isEmpty(items)}">
+     th:if="${#lists.isEmpty(productItems)}">
     No products found.
   </p>
 
@@ -186,27 +186,13 @@
 
 
   <div class="form-group filter-group">
-
-    <label for="category">Aisle</label>
-
-    <select id="category"
-            name="category">
-
-      <option value="">
-        All aisles
-      </option>
-
-      <option th:each="aisle : ${categories}"
-              th:value="${aisle}"
-              th:text="${aisle}"
-              th:selected="${aisle == category}">
-      </option>
-
+    <label for="sort">Sort by</label>
+    <select id="sort" name="sort">
+      <option value="name" th:selected="${sort == 'name'}">Name (A–Z)</option>
+      <option value="price-asc" th:selected="${sort == 'price-asc'}">Price (low to high)</option>
+      <option value="price-desc" th:selected="${sort == 'price-desc'}">Price (high to low)</option>
     </select>
-
   </div>
-
-
   <div class="filter-group">
 
     <label for="min">
@@ -270,16 +256,10 @@
   </div>
 
 
-  <button class="btn place-order"
-          type="submit">
-    Apply filters
-  </button>
-
-
-  <a class="text-link reset-link"
-     th:href="@{/products(storeId=${store?.id})}">
-    Clear filters
-  </a>
+  <div class="filter-actions">
+    <button class="btn place-order" type="submit">Apply filters</button>
+    <a class="text-link reset-link" th:href="@{/products(storeId=${store?.id})}">Clear filters</a>
+  </div>
 
 </div>
 

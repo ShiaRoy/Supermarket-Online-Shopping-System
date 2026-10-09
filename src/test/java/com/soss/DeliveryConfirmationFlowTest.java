@@ -82,6 +82,7 @@ class DeliveryConfirmationFlowTest {
 
     private Long customerId;
     private Long driverId;
+    private Long otherDriverId;
     private Long productId;
 
     @BeforeEach
@@ -98,6 +99,7 @@ class DeliveryConfirmationFlowTest {
         customerId = customer(CUSTOMER_EMAIL).getId();
         customer(OTHER_CUSTOMER_EMAIL);
         driverId = account("driver@example.com", "Driver One", Role.DELIVERY).getId();
+        otherDriverId = account("other-driver@example.com", "Driver Two", Role.DELIVERY).getId();
         Long storeId = catalogue.addStore("Suva").getId();
 
         ProductForm form = new ProductForm();
@@ -118,6 +120,7 @@ class DeliveryConfirmationFlowTest {
         Delivery delivery = deliveries.findByOrderId(orderId).orElseThrow();
         UserRequestPostProcessor staff = user("staff").roles("STAFF");
         UserRequestPostProcessor customer = customerUser(CUSTOMER_EMAIL);
+        UserRequestPostProcessor driver = user("driver@example.com").roles("DELIVERY");
 
         // Only a delivery driver can be assigned, so a customer's ID is refused.
         mvc.perform(post("/delivery/" + delivery.getId() + "/driver").with(staff).with(csrf())
@@ -128,19 +131,19 @@ class DeliveryConfirmationFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Driver One")));
 
-        // Going out for delivery needs a driver, so this is refused and the status stays Packed.
+        // Staff may pack, but only the assigned driver can take a delivery out.
         mvc.perform(post("/delivery/" + delivery.getId() + "/status").with(staff).with(csrf())
                         .param("status", "PACKED"))
                 .andExpect(redirectedUrl("/delivery/manage"));
         mvc.perform(post("/delivery/" + delivery.getId() + "/status").with(staff).with(csrf())
                         .param("status", "OUT_FOR_DELIVERY"))
-                .andExpect(redirectedUrl("/delivery/manage"));
+                .andExpect(status().isForbidden());
         assertEquals(DeliveryStatus.PACKED, reload(orderId).getStatus());
 
         mvc.perform(post("/delivery/" + delivery.getId() + "/driver").with(staff).with(csrf())
                         .param("staffId", driverId.toString()))
                 .andExpect(redirectedUrl("/delivery/manage"));
-        mvc.perform(post("/delivery/" + delivery.getId() + "/status").with(staff).with(csrf())
+        mvc.perform(post("/delivery/" + delivery.getId() + "/status").with(driver).with(csrf())
                         .param("status", "OUT_FOR_DELIVERY"))
                 .andExpect(redirectedUrl("/delivery/manage"));
         assertEquals(DeliveryStatus.OUT_FOR_DELIVERY, reload(orderId).getStatus());
@@ -153,10 +156,13 @@ class DeliveryConfirmationFlowTest {
 
         // Marking it delivered needs the name of the person who received it.
         mvc.perform(post("/delivery/" + delivery.getId() + "/status").with(staff).with(csrf())
+                        .param("status", "DELIVERED").param("receivedBy", "Mere Tui"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/delivery/" + delivery.getId() + "/status").with(driver).with(csrf())
                         .param("status", "DELIVERED"))
                 .andExpect(redirectedUrl("/delivery/manage"));
         assertEquals(DeliveryStatus.OUT_FOR_DELIVERY, reload(orderId).getStatus());
-        mvc.perform(post("/delivery/" + delivery.getId() + "/status").with(staff).with(csrf())
+        mvc.perform(post("/delivery/" + delivery.getId() + "/status").with(driver).with(csrf())
                         .param("status", "DELIVERED")
                         .param("receivedBy", "Mere Tui"))
                 .andExpect(redirectedUrl("/delivery/manage"));
@@ -194,14 +200,15 @@ class DeliveryConfirmationFlowTest {
         Long orderId = placeOrder();
         Delivery delivery = deliveries.findByOrderId(orderId).orElseThrow();
         UserRequestPostProcessor staff = user("staff").roles("STAFF");
+        UserRequestPostProcessor driver = user("driver@example.com").roles("DELIVERY");
 
         mvc.perform(post("/delivery/" + delivery.getId() + "/driver").with(staff).with(csrf())
                         .param("staffId", driverId.toString()));
         mvc.perform(post("/delivery/" + delivery.getId() + "/status").with(staff).with(csrf())
                         .param("status", "PACKED"));
-        mvc.perform(post("/delivery/" + delivery.getId() + "/status").with(staff).with(csrf())
+        mvc.perform(post("/delivery/" + delivery.getId() + "/status").with(driver).with(csrf())
                         .param("status", "OUT_FOR_DELIVERY"));
-        mvc.perform(post("/delivery/" + delivery.getId() + "/failed").with(staff).with(csrf())
+        mvc.perform(post("/delivery/" + delivery.getId() + "/failed").with(driver).with(csrf())
                         .param("reason", "Nobody home"))
                 .andExpect(redirectedUrl("/delivery/manage"));
 
@@ -212,6 +219,49 @@ class DeliveryConfirmationFlowTest {
         mvc.perform(get("/delivery/track/" + orderId).with(customerUser(CUSTOMER_EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Nobody home")));
+    }
+
+    @Test
+    void deliveryPersonnelCanOnlySeeAndUpdateDeliveriesAssignedToTheirAccount() throws Exception {
+        Long assignedOrder = placeOrder();
+        Long otherOrder = placeOrder();
+        Delivery assigned = deliveries.findByOrderId(assignedOrder).orElseThrow();
+        Delivery other = deliveries.findByOrderId(otherOrder).orElseThrow();
+        UserRequestPostProcessor staff = user("staff").roles("STAFF");
+        UserRequestPostProcessor driver = user("driver@example.com").roles("DELIVERY");
+        UserRequestPostProcessor otherDriver = user("other-driver@example.com").roles("DELIVERY");
+
+        mvc.perform(post("/delivery/" + assigned.getId() + "/driver").with(staff).with(csrf())
+                        .param("staffId", driverId.toString()))
+                .andExpect(redirectedUrl("/delivery/manage"));
+        mvc.perform(post("/delivery/" + other.getId() + "/driver").with(staff).with(csrf())
+                        .param("staffId", otherDriverId.toString()))
+                .andExpect(redirectedUrl("/delivery/manage"));
+
+        String assignedList = mvc.perform(get("/delivery/manage").with(driver))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        org.assertj.core.api.Assertions.assertThat(assignedList)
+                .contains("#" + assignedOrder)
+                .doesNotContain("#" + otherOrder);
+        mvc.perform(get("/delivery/track/" + otherOrder).with(driver))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/delivery/" + other.getId() + "/status").with(driver).with(csrf())
+                        .param("status", "PACKED"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/delivery/" + other.getId() + "/status").with(otherDriver).with(csrf())
+                        .param("status", "PACKED"))
+                .andExpect(status().isForbidden());
+        assertEquals(DeliveryStatus.CONFIRMED, reload(otherOrder).getStatus());
+
+        UserRequestPostProcessor admin = user("admin").roles("ADMIN");
+        String adminList = mvc.perform(get("/delivery/manage").with(admin))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        org.assertj.core.api.Assertions.assertThat(adminList)
+                .contains("#" + assignedOrder, "#" + otherOrder);
+        mvc.perform(post("/delivery/" + other.getId() + "/status").with(admin).with(csrf())
+                        .param("status", "PACKED"))
+                .andExpect(redirectedUrl("/delivery/manage"));
+        assertEquals(DeliveryStatus.PACKED, reload(otherOrder).getStatus());
     }
 
     private Long placeOrder() {

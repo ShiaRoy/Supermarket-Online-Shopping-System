@@ -62,6 +62,22 @@ public class DeliveryService {
                 : deliveryRepository.findByStatusOrderByUpdatedAtDesc(status);
     }
 
+    /** Only the deliveries assigned to a specific delivery account. */
+    @Transactional(readOnly = true)
+    public List<Delivery> findAssignedToStaff(Long staffId, DeliveryStatus status) {
+        if (staffId == null) {
+            throw new IllegalArgumentException("A delivery account is required.");
+        }
+        return status == null
+                ? deliveryRepository.findByAssignedStaffIdOrderByUpdatedAtDesc(staffId)
+                : deliveryRepository.findByAssignedStaffIdAndStatusOrderByUpdatedAtDesc(staffId, status);
+    }
+
+    @Transactional(readOnly = true)
+    public Delivery getDelivery(Long deliveryId) {
+        return findDelivery(deliveryId);
+    }
+
     /**
      * Moves a delivery to its next stage. 
      */

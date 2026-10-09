@@ -105,11 +105,19 @@ class Phase2AccountsTest {
         Long id=queries.findAll().get(0).getId();
         mvc.perform(get("/support").with(user(EMAIL).roles("CUSTOMER"))).andExpect(status().isOk());
         mvc.perform(get("/support/manage").with(user(EMAIL).roles("CUSTOMER"))).andExpect(status().isForbidden());
-        mvc.perform(get("/support/manage").with(user("staff").roles("STAFF"))).andExpect(status().isOk());
+        mvc.perform(get("/support/manage").with(user("staff").roles("STAFF")))
+            .andExpect(status().isOk())
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Customer question")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("When will my groceries arrive?")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("No response has been sent yet.")));
         mvc.perform(post("/support/manage/"+id).with(user("staff").roles("STAFF")).with(csrf())
             .param("reply","Please check your delivery tracking page.").param("status","RESOLVED"))
             .andExpect(redirectedUrl("/support/manage?saved"));
         assertEquals(SupportStatus.RESOLVED,queries.findById(id).orElseThrow().getStatus());
+        mvc.perform(get("/support/manage").with(user("admin").roles("ADMIN")))
+            .andExpect(status().isOk())
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Please check your delivery tracking page.")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Admin dashboard")));
         mvc.perform(get("/support").with(user(EMAIL).roles("CUSTOMER")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("Please check your delivery tracking page.")));
     }

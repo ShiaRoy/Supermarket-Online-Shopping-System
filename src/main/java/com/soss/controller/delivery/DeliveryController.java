@@ -11,6 +11,8 @@ import com.soss.service.OrderService;
 import com.soss.service.delivery.DeliveryService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -82,12 +84,19 @@ public class DeliveryController {
 
     
     @GetMapping("/manage")
-    public String manage(@RequestParam(required = false) DeliveryStatus status, Model model) {
-        model.addAttribute("deliveries", deliveryService.findAll(status));
+    public String manage(@RequestParam(required = false) DeliveryStatus status,
+                         Principal principal,
+                         Model model) {
+        Role role = authenticatedRole();
+        User driver = role == Role.DELIVERY ? accountService.profile(principal.getName()) : null;
+        model.addAttribute("deliveries", role == Role.DELIVERY
+                ? deliveryService.findAssignedToStaff(driver.getId(), status)
+                : deliveryService.findAll(status));
         model.addAttribute("statuses", DeliveryStatus.values());
         model.addAttribute("selected", status);
         model.addAttribute("drivers", deliveryService.findDrivers());
         model.addAttribute("driverNames", deliveryService.driverNames());
+        model.addAttribute("deliveryUser", role == Role.DELIVERY);
         return "delivery/manage";
     }
 
@@ -128,9 +137,14 @@ public class DeliveryController {
     @PostMapping("/{id}/status")
     public String updateStatus(@PathVariable Long id,
                                @RequestParam DeliveryStatus status,
+                               Principal principal,
                                @RequestParam(required = false) String receivedBy,
                                RedirectAttributes redirectAttributes) {
         try {
+            Role actorRole = authenticatedRole();
+            User actor = actorRole == Role.DELIVERY ? accountService.profile(principal.getName()) : null;
+            Delivery delivery = deliveryService.getDelivery(id);
+            authorizeStatusUpdate(actorRole, actor == null ? null : actor.getId(), delivery, status);
             deliveryService.advanceStatus(id, status, receivedBy);
             redirectAttributes.addFlashAttribute("message", "Delivery status updated.");
         } catch (NoSuchElementException e) {
@@ -144,9 +158,14 @@ public class DeliveryController {
     
     @PostMapping("/{id}/failed")
     public String reportFailedAttempt(@PathVariable Long id,
+                                      Principal principal,
                                       @RequestParam String reason,
                                       RedirectAttributes redirectAttributes) {
         try {
+            Role actorRole = authenticatedRole();
+            User actor = actorRole == Role.DELIVERY ? accountService.profile(principal.getName()) : null;
+            Delivery delivery = deliveryService.getDelivery(id);
+            authorizeAssignedDriverOrAdmin(actorRole, actor == null ? null : actor.getId(), delivery);
             deliveryService.reportFailedAttempt(id, reason);
             redirectAttributes.addFlashAttribute("message", "Failed attempt recorded. The delivery is back to Packed.");
         } catch (NoSuchElementException e) {
@@ -186,6 +205,14 @@ public class DeliveryController {
         }
 
         User user = accountService.profile(principal.getName());
+        if (user.getRole() == Role.DELIVERY) {
+            Delivery delivery = deliveryService.findByOrderId(orderId).orElseThrow(
+                    () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery not found"));
+            if (!Objects.equals(delivery.getAssignedStaffId(), user.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This delivery is not assigned to you.");
+            }
+            return;
+        }
         if (user.getRole() != Role.CUSTOMER) {
             return;
         }
@@ -200,5 +227,53 @@ public class DeliveryController {
         if (!Objects.equals(order.getCustomerId(), user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This is not your delivery.");
         }
+    }
+
+    private void authorizeStatusUpdate(Role actorRole, Long actorId, Delivery delivery, DeliveryStatus requested) {
+        if (actorRole == Role.ADMIN) {
+            return;
+        }
+        if (actorRole == Role.STAFF) {
+            if (delivery.getStatus() != DeliveryStatus.CONFIRMED || requested != DeliveryStatus.PACKED) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Staff can prepare a confirmed delivery by marking it Packed.");
+            }
+            return;
+        }
+        if (actorRole == Role.DELIVERY) {
+            if (!Objects.equals(delivery.getAssignedStaffId(), actorId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This delivery is not assigned to you.");
+            }
+            boolean allowedDriverStep = (delivery.getStatus() == DeliveryStatus.PACKED
+                    && requested == DeliveryStatus.OUT_FOR_DELIVERY)
+                    || (delivery.getStatus() == DeliveryStatus.OUT_FOR_DELIVERY
+                    && requested == DeliveryStatus.DELIVERED);
+            if (!allowedDriverStep) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Delivery personnel can only progress their assigned delivery through its next stage.");
+            }
+            return;
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot update delivery status.");
+    }
+
+    private void authorizeAssignedDriverOrAdmin(Role actorRole, Long actorId, Delivery delivery) {
+        if (actorRole == Role.ADMIN) {
+            return;
+        }
+        if (actorRole != Role.DELIVERY
+                || !Objects.equals(delivery.getAssignedStaffId(), actorId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only the assigned delivery person can report a failed delivery attempt.");
+        }
+    }
+
+    private Role authenticatedRole() {
+        return SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .map(authority -> Role.valueOf(authority.substring("ROLE_".length())))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "A delivery role is required."));
     }
 }
