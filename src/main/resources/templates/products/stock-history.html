@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{products/fragments :: head('Stock history')}"></head>
+<body>
+<header th:replace="~{fragments :: siteHeader('inventory')}"></header>
+<main class="shell">
+  <a class="text-link" th:href="@{/inventory(storeId=${item.store.id})}">&larr; Inventory</a>
+  <h1 class="section-title" th:text="|Stock history: ${item.product.name}|"></h1>
+  <p th:text="|${item.store.name} - ${item.quantity} in stock - threshold ${item.lowStockThreshold}|"></p>
+  <p th:if="${message}" th:text="${message}" role="status" class="alert alert-success"></p>
+  <p th:if="${error}" th:text="${error}" role="alert" class="alert alert-danger"></p>
+  <form class="history-restock form-grid two-col" th:action="@{/inventory/{id}/restock(id=${item.product.id})}" method="post">
+    <input type="hidden" name="storeId" th:value="${item.store.id}">
+    <div class="form-group"><label for="amount">Units received</label><input id="amount" name="amount" type="number" min="1" max="1000000" required></div>
+    <div class="form-group"><label for="reason">Restock reason / reference</label><input id="reason" name="reason" maxlength="250" required></div>
+    <div><button class="btn" type="submit">Record restock</button></div>
+  </form>
+  <p th:if="${history.empty}">No stock movements recorded yet.</p>
+  <div class="table-responsive" th:unless="${history.empty}">
+    <table class="table history-table"><thead><tr><th>Time (UTC)</th><th>Type</th><th>Before</th><th>Change</th><th>After</th><th>Reason</th><th>Recorded by</th></tr></thead><tbody>
+      <tr th:each="movement : ${history.content}">
+        <td th:text="${movement.occurredAt}"></td><td th:text="${movement.type}"></td>
+        <td th:text="${movement.beforeQuantity}"></td><td th:text="${movement.change}"></td><td th:text="${movement.afterQuantity}"></td>
+        <td th:text="${movement.reason}"></td><td th:text="${movement.actor}"></td>
+      </tr>
+    </tbody></table>
+  </div>
+  <nav class="pagination-links" aria-label="History pages">
+    <a th:if="${history.hasPrevious()}" th:href="@{/inventory/{id}/history(id=${item.product.id},storeId=${item.store.id},page=${history.number - 1})}">Newer</a>
+    <span th:if="${history.totalPages > 0}" th:text="|Page ${history.number + 1} of ${history.totalPages}|"></span>
+    <a th:if="${history.hasNext()}" th:href="@{/inventory/{id}/history(id=${item.product.id},storeId=${item.store.id},page=${history.number + 1})}">Older</a>
+  </nav>
+</main>
+<footer th:replace="~{products/fragments :: footer}"></footer>
+</body></html>

@@ -8,21 +8,36 @@
     <div><h1>Your cart</h1><p class="muted">Review your groceries before checkout.</p></div>
     <a class="btn btn-outline-success" th:href="@{/products}">Continue shopping</a>
   </div>
+  <div th:if="${message}" class="alert alert-success" role="status" th:text="${message}"></div>
   <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
-  <div class="row g-4">
+  <div class="row g-4 cart-layout">
     <div class="col-lg-7"><section class="panel cart-lines" aria-label="Cart items">
       <div th:if="${basket.lines.isEmpty()}" class="empty"><h2>Your cart is empty</h2><a th:href="@{/products}" class="btn btn-outline-success">Browse groceries</a></div>
       <div class="cart-line" th:each="line : ${basket.lines}">
-        <div class="product-icon" aria-hidden="true" th:text="${line.icon}"></div>
-        <div class="product-name"><strong th:text="${line.name}"></strong><small th:text="'FJ$ ' + ${#numbers.formatDecimal(line.unitPrice,1,2)} + ' each'"></small></div>
+        <div class="product-icon cart-product-icon" aria-hidden="true"><span th:text="${line.icon}">basket</span></div>
+        <div class="product-name cart-product-details"><strong th:text="${line.name}"></strong><small th:text="'FJ$ ' + ${#numbers.formatDecimal(line.unitPrice,1,2)} + ' each'"></small></div>
         <form th:action="@{/cart/quantity}" method="post" class="quantity"><input type="hidden" name="productId" th:value="${line.id}"><button name="delta" value="-1" th:aria-label="'Decrease quantity of ' + ${line.name}">&#8722;</button><span th:text="${line.quantity}"></span><button name="delta" value="1" th:disabled="${line.quantity>=99}" th:aria-label="'Increase quantity of ' + ${line.name}">+</button></form>
         <strong class="line-price" th:text="'FJ$ ' + ${#numbers.formatDecimal(line.total,1,2)}"></strong>
       </div>
     </section></div>
     <div class="col-lg-5"><section class="panel summary"><h2>Cart summary</h2>
       <div class="summary-row"><span>Subtotal</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.subtotal,1,2)}"></span></div>
-      <form th:action="@{/cart/promo}" method="post" class="promo"><label for="code" class="visually-hidden">Promo code</label><input id="code" name="code" maxlength="32" th:value="${basket.promo}" placeholder="Enter code" class="form-control"><button class="btn apply">Apply</button></form>
-      <small class="muted">Use BULA10 for 10% off groceries. Clear the code to remove it.</small>
+      <div class="summary-row"><span>Delivery fee</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.delivery,1,2)}"></span></div>
+      <section class="available-offers" aria-labelledby="offer-heading">
+        <h3 id="offer-heading">Available offers</h3>
+        <article class="offer-card"><strong>BULA10</strong><span>10% off groceries.</span><small>Eligibility: any grocery order with items.</small></article>
+        <article class="offer-card"><strong>SAVE5</strong><span>FJ$ 5 off groceries.</span><small>Eligibility: grocery subtotal of FJ$ 50 or more (inclusive).</small></article>
+        <article class="offer-card"><strong>FREEDEL</strong><span>Free delivery.</span><small>Eligibility: grocery subtotal of FJ$ 30 or more (inclusive).</small></article>
+      </section>
+      <form th:action="@{/cart/promo}" method="post" class="promo"><label for="code" class="visually-hidden">Promo code</label><input id="code" name="code" maxlength="32" placeholder="Enter another promo code" class="form-control"><button class="btn apply" type="submit">Apply</button></form>
+      <section class="applied-promos" th:if="${!basket.appliedPromos.isEmpty()}" aria-label="Applied promo codes">
+        <h3>Applied offers</h3>
+        <article class="applied-promo" th:each="offer : ${basket.appliedPromos}">
+          <div class="applied-promo-copy"><strong th:text="${offer.code}"></strong><span th:text="${offer.description}"></span><small th:if="${!offer.eligible}" class="promo-ineligible">No longer eligible at this basket value.</small></div>
+          <div class="applied-promo-action"><strong th:if="${offer.amount.signum() > 0}" th:text="'−FJ$ ' + ${#numbers.formatDecimal(offer.amount,1,2)}"></strong><strong th:if="${offer.amount.signum() == 0}" class="muted">FJ$ 0.00</strong><form th:action="@{/cart/promo/remove}" method="post"><input type="hidden" name="code" th:value="${offer.code}"><button class="remove-promo" type="submit" th:aria-label="'Remove promo ' + ${offer.code}">Remove</button></form></div>
+        </article>
+      </section>
+      <div class="summary-row discount-total"><span>Total discounts</span><span th:text="'−FJ$ ' + ${#numbers.formatDecimal(basket.discount,1,2)}"></span></div>
       <div class="summary-row total"><strong>Estimated total</strong><strong th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.total,1,2)}"></strong></div>
       <a class="place-order cart-checkout-link" th:classappend="${basket.lines.isEmpty()} ? 'disabled' : ''" th:href="@{/checkout}">Proceed to checkout</a>
     </section></div>

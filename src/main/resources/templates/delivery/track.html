@@ -128,6 +128,28 @@
       color: #163f37;
     }
 
+    .delivery-timeline .timeline-time {
+      color: #0d786b;
+      font-weight: 600;
+    }
+
+    .delivery-alert {
+      margin: 0 0 18px;
+      padding: 14px 18px;
+      border-radius: 14px;
+      background: #fde3df;
+      color: #a73525;
+      font-weight: 600;
+    }
+
+    .confirm-form {
+      margin: 16px 0 0;
+    }
+
+    .confirm-form .btn {
+      width: 100%;
+    }
+
     @media (max-width: 850px) {
       .delivery-page-head {
         flex-direction: column;
@@ -186,6 +208,24 @@
     </div>
 
 
+    <div class="delivery-note" th:if="${message}" th:text="${message}" style="margin: 0 0 18px">
+      Thank you for confirming.
+    </div>
+
+    <div class="delivery-alert" th:if="${error}" th:text="${error}">
+      Something went wrong.
+    </div>
+
+    <div class="delivery-alert" th:if="${delivery.cancelledAt != null}">
+      This delivery was cancelled because the order was cancelled.
+    </div>
+
+    <div class="delivery-alert"
+         th:if="${delivery.failedAttemptReason != null and delivery.cancelledAt == null}"
+         th:text="'Delivery attempt failed: ' + ${delivery.failedAttemptReason} + '. We will try again.'">
+      Delivery attempt failed: nobody home. We will try again.
+    </div>
+
     <div class="delivery-grid">
 
       <article class="tracking-card">
@@ -223,8 +263,16 @@
                 Confirmed
               </strong>
 
-              <small th:text="${step.description}">
+              <small th:text="${step.name() == 'DELIVERED' and delivery.status.name() == 'DELIVERED'
+                               ? 'Your order has been handed over.'
+                               : step.description}">
                 Your order has been confirmed.
+              </small>
+
+              <small class="timeline-time"
+                     th:if="${@deliveryDisplay.stepTime(delivery, step) != ''}"
+                     th:text="${@deliveryDisplay.stepTime(delivery, step)}">
+                6 Oct 2026, 2:10 pm
               </small>
 
             </div>
@@ -235,6 +283,7 @@
 
 
         <div class="delivery-note"
+             th:unless="${delivery.cancelledAt != null}"
              th:text="${delivery.status.name() == 'DELIVERED'
              ? 'Your order has been delivered. Vinaka for shopping with Bula Basket!'
              : 'Your order is on the way. Delivery times may shift slightly because of traffic or weather.'}">
@@ -273,9 +322,7 @@
             <div>
               <dt>Driver</dt>
 
-              <dd th:text="${delivery.assignedStaffId != null}
-                           ? 'Assigned delivery staff'
-                           : 'Not yet assigned'">
+              <dd th:text="${delivery.assignedStaffId == null ? 'Not yet assigned' : (driverName != null ? driverName : 'Assigned delivery staff')}">
                 Not yet assigned
               </dd>
             </div>
@@ -289,7 +336,60 @@
               </dd>
             </div>
 
+
+            <div th:if="${delivery.deliveredAt != null}">
+              <dt>Delivered</dt>
+
+              <dd th:text="${@deliveryDisplay.stamp(delivery.deliveredAt)}">
+                6 Oct 2026, 2:10 pm
+              </dd>
+            </div>
+
+
+            <div th:if="${delivery.receivedBy != null}">
+              <dt>Received by</dt>
+
+              <dd th:text="${delivery.receivedBy}">
+                Name
+              </dd>
+            </div>
+
           </dl>
+
+        </section>
+
+
+        <section class="info-card"
+                 style="margin-top: 24px"
+                 th:if="${delivery.status.name() == 'DELIVERED'}">
+
+          <h2>Confirm receipt</h2>
+
+          <p class="meta"
+             th:if="${delivery.customerConfirmedAt != null}"
+             th:text="'You confirmed receiving this order on ' + ${@deliveryDisplay.stamp(delivery.customerConfirmedAt)} + '.'">
+            You confirmed receiving this order.
+          </p>
+
+          <form class="confirm-form"
+                th:if="${delivery.customerConfirmedAt == null}"
+                sec:authorize="hasRole('CUSTOMER')"
+                th:action="@{/delivery/track/{orderId}/confirm(orderId=${delivery.orderId})}"
+                method="post">
+
+            <p class="meta">Have your groceries arrived? Let us know.</p>
+
+            <button type="submit" class="btn">
+              Confirm I received my order
+            </button>
+
+          </form>
+
+          <p class="meta"
+             th:if="${delivery.customerConfirmedAt == null}"
+             sec:authorize="!hasRole('CUSTOMER')">
+            Waiting for the customer to confirm.
+          </p>
 
         </section>
 

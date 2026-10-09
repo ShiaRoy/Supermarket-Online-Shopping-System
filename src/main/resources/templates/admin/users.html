@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Manage accounts')}"></head>
+<body><header th:replace="~{fragments :: siteHeader('admin-users')}"></header>
+<main class="admin-shell"><div class="admin-title"><div><p class="admin-kicker">Administration</p><h1>User and role management</h1><p>Passwords and password hashes are never displayed.</p></div><a class="admin-action admin-outline" th:href="@{/admin/dashboard}">Back to dashboard</a></div>
+  <div th:if="${message}" class="alert alert-success" role="status" th:text="${message}"></div><div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+  <section class="admin-panel"><div class="table-responsive"><table class="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Current role</th><th>Update role</th></tr></thead><tbody>
+    <tr th:each="account : ${accounts}"><td th:text="${account.fullName}"></td><td th:text="${account.email}"></td><td th:text="${account.phone}"></td><td><span class="admin-status" th:text="${account.role}"></span></td>
+      <td><form class="role-form" method="post" th:action="@{/admin/users/{id}/role(id=${account.id})}"><select name="role" aria-label="Select role"><option th:each="role : ${assignableRoles}" th:value="${role}" th:selected="${role == account.role}" th:text="${role}"></option><option th:if="${account.role.name() == 'ADMIN'}" value="ADMIN" selected>ADMIN</option></select><button class="admin-action" type="submit">Save role</button></form></td></tr>
+    <tr th:if="${#lists.isEmpty(accounts)}"><td colspan="5" class="admin-empty">No accounts are registered.</td></tr>
+  </tbody></table></div></section>
+  <p class="admin-note">Administrator accounts cannot be created from this screen. The final active Administrator cannot be demoted.</p>
+</main><footer th:replace="~{fragments :: footer}"></footer></body></html>

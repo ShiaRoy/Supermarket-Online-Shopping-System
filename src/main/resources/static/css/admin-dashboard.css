@@ -1,0 +1,49 @@
+.admin-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 46px 0 64px; color: #25362f; }
+.admin-title { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 28px; }
+.admin-title h1 { margin: 0 0 8px; color: #124f48; font: 700 30px/1.15 Georgia, serif; }
+.admin-title p { margin: 0; color: #75695f; }
+.admin-title .admin-kicker { margin-bottom: 8px; color: #0d786b; font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.admin-action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 9px 16px; border: 1px solid #0d786b; border-radius: 11px; background: #0d786b; color: #fff; font-weight: 700; text-decoration: none; cursor: pointer; white-space: nowrap; }
+.admin-action:hover { background: #095e55; color: #fff; }
+.admin-action:focus-visible, .admin-table a:focus-visible { outline: 3px solid #ec9200; outline-offset: 3px; }
+.admin-outline { background: #fff; color: #0b6e63; }
+.admin-outline:hover { background: #e9f5ef; color: #075e55; }
+.admin-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 24px; }
+.admin-metric, .admin-panel, .admin-shortcuts { padding: 20px; border: 1px solid #e6dfd7; border-radius: 17px; background: #fff; box-shadow: 0 8px 24px rgba(45, 65, 52, .07); }
+.admin-metric { display: grid; align-content: start; gap: 8px; min-height: 132px; }
+.admin-metric span { color: #71675d; font-size: 13px; }
+.admin-metric strong { color: #104e47; font: 700 28px/1.1 Georgia, serif; }
+.admin-metric small, .admin-metric a { color: #766b61; font-size: 11px; }
+.admin-metric a { color: #0b6e63; font-weight: 700; }
+.admin-panel { margin: 0 0 22px; }
+.admin-panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 14px; }
+.admin-panel h2, .admin-shortcuts h2 { margin: 0; color: #124f48; font: 700 20px Georgia, serif; }
+.admin-panel-heading a { color: #0b6e63; font-weight: 700; }
+.admin-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.admin-table th { padding: 12px 14px; background: #edf6f1; color: #22594d; font-size: 12px; text-align: left; white-space: nowrap; }
+.admin-table td { padding: 14px; border-bottom: 1px solid #eee7e0; vertical-align: middle; }
+.admin-table tbody tr:last-child td { border-bottom: 0; }
+.admin-table small.admin-subline { display: block; margin-top: 4px; color: #75695f; }
+.admin-status { display: inline-flex; padding: 5px 9px; border-radius: 999px; background: #e5f4ed; color: #136b57; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.admin-empty, .admin-note { color: #766b61; }
+.admin-shortcuts { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; }
+.admin-shortcuts h2 { margin-right: auto; }
+.admin-shortcuts a { color: #0b6e63; font-weight: 700; }
+.role-form { display: flex; align-items: center; gap: 8px; }
+.role-form select { min-height: 40px; max-width: 150px; padding: 7px 10px; border: 1px solid #c9d9d1; border-radius: 9px; background: #fff; }
+.payment-records { min-width: 230px; margin: 0; padding-left: 18px; }
+.payment-records li { margin: 4px 0; }
+.payment-records span, .payment-records small { display: block; color: #75695f; font-size: 12px; overflow-wrap: anywhere; }
+@media (max-width: 1000px) { .admin-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+  .admin-shell { width: min(100% - 28px, 1180px); padding-top: 32px; }
+  .admin-title { align-items: flex-start; flex-direction: column; }
+  .admin-title h1 { font-size: 26px; }
+  .admin-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-metric { min-height: 118px; padding: 16px; }
+  .admin-panel { padding: 14px; }
+  .admin-panel-heading { align-items: flex-start; flex-direction: column; }
+  .admin-table { min-width: 660px; }
+  .role-form { align-items: flex-start; flex-direction: column; }
+}
+@media (max-width: 420px) { .admin-metrics { grid-template-columns: 1fr; } .admin-shortcuts { align-items: flex-start; flex-direction: column; } }

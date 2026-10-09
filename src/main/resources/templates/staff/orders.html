@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Staff order queue')}"></head>
+<body>
+<header th:replace="~{fragments :: siteHeader('staff-orders')}"></header>
+<main class="admin-shell">
+  <div class="admin-title"><div><p class="admin-kicker">Staff operations</p><h1>Order queue</h1><p>Review paid customer orders and move ready orders into processing.</p></div></div>
+  <div th:if="${message}" class="alert alert-success" role="status" th:text="${message}"></div>
+  <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+  <section class="admin-panel"><div class="table-responsive"><table class="admin-table">
+    <thead><tr><th>Order</th><th>Customer ID</th><th>Placed</th><th>Items</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr th:each="order : ${orders}"><td th:text="|#${order.id}|">#1</td><td th:text="${order.customerId}">1</td>
+        <td th:text="${order.date != null ? #temporals.format(order.date, 'dd MMM yyyy, h:mm a') : '—'}">Date</td>
+        <td th:text="${order.items}">Milk × 1</td><td th:text="'FJ$ ' + ${#numbers.formatDecimal(order.total,1,2)}">FJ$ 0.00</td>
+        <td><span class="admin-status" th:text="${order.status}">PAID</span></td>
+        <td><form th:if="${order.status != null and order.status.name() == 'PAID'}" method="post" th:action="@{/staff/orders/{id}/processing(id=${order.id})}"><button class="admin-action" type="submit">Mark processing</button></form><span th:unless="${order.status != null and order.status.name() == 'PAID'}" class="admin-note">No action</span></td>
+      </tr>
+      <tr th:if="${#lists.isEmpty(orders)}"><td colspan="7" class="admin-empty">There are no orders yet.</td></tr>
+    </tbody>
+  </table></div></section>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body></html>

@@ -18,6 +18,8 @@ public class Inventory {
     private Product product;
     @Column(nullable = false)
     private int quantity;
+    @Column(nullable = false, columnDefinition = "integer default 10")
+    private int lowStockThreshold = 10;
     protected Inventory() {}
     public Inventory(Store store, Product product, int quantity) {
         this.store = store; this.product = product; setQuantity(quantity);
@@ -31,6 +33,12 @@ public class Inventory {
     public Store getStore() { return store; }
     public Product getProduct() { return product; }
     public int getQuantity() { return quantity; }
-    public String getStatus() { return quantity == 0 ? "Out of stock" : quantity <= 10 ? "Low stock" : "In stock"; }
-    public String getStatusClass() { return quantity == 0 ? "out" : quantity <= 10 ? "low-stock" : "good"; }
+    public int getLowStockThreshold() { return lowStockThreshold; }
+    public void setLowStockThreshold(int threshold) {
+        if (threshold < 0 || threshold > 1000000) throw new IllegalArgumentException("Invalid stock threshold.");
+        this.lowStockThreshold = threshold;
+    }
+    public boolean isLowStock() { return quantity <= lowStockThreshold; }
+    public String getStatus() { return quantity == 0 ? "Out of stock" : isLowStock() ? "Low stock" : "In stock"; }
+    public String getStatusClass() { return quantity == 0 ? "out" : isLowStock() ? "low-stock" : "good"; }
 }

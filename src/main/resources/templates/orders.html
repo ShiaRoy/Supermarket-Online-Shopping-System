@@ -22,6 +22,7 @@
 
     <link rel="stylesheet"
           th:href="@{/css/styles.css}" />
+    <link rel="stylesheet" th:href="@{/css/orders-payments.css}" />
 
     <style>
         .orders-header {
@@ -104,7 +105,7 @@
 
 <main>
 
-    <section class="shell">
+    <section class="shell orders-page">
 
         <div class="orders-top">
 
@@ -122,8 +123,12 @@
                th:href="@{/products}">
                 Continue shopping
             </a>
+            <a class="btn btn-outline" th:href="@{/payment-history}">Payment history</a>
 
         </div>
+
+        <div class="alert alert-success" th:if="${message}" role="status" th:text="${message}"></div>
+        <div class="alert alert-danger" th:if="${error}" role="alert" th:text="${error}"></div>
 
 
         <div class="empty-orders"
@@ -174,11 +179,12 @@
             <div class="order-actions">
 
                 <span class="status"
+                      th:classappend="${order.status.name() == 'CANCELLED'} ? ' delivered' : ''"
                       th:text="${order.status}">
                 </span>
 
 
-                <a class="btn"
+                <a class="btn" th:if="${order.status.name() != 'CANCELLED'}"
                    th:href="@{/delivery/track/{orderId}(orderId=${order.id})}">
                     Track order
                 </a>
@@ -188,6 +194,15 @@
                    th:href="@{/orders/{orderId}/confirmation(orderId=${order.id})}">
                     Details
                 </a>
+
+                <form th:action="@{/orders/{orderId}/reorder(orderId=${order.id})}" method="post">
+                    <button class="btn btn-outline" type="submit">Reorder</button>
+                </form>
+
+                <form th:if="${cancellableOrderIds.contains(order.id)}"
+                      th:action="@{/orders/{orderId}/cancel(orderId=${order.id})}" method="post">
+                    <button class="btn btn-outline" type="submit">Cancel order</button>
+                </form>
 
             </div>
 

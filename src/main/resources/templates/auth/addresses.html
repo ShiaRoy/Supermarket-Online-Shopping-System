@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>Bula Basket | Saved addresses</title>
+<link rel="stylesheet" th:href="@{/css/auth.css}"><link rel="stylesheet" th:href="@{/css/navigation.css}">
+<link rel="stylesheet" th:href="@{/css/accounts-phase2.css}"></head>
+<body><header th:replace="~{fragments :: siteHeader('profile')}"></header>
+<main class="shell"><section class="profile-card"><h1>Saved addresses</h1><p>Save up to 10 addresses. Select one as your default to use it as your profile delivery address.</p>
+<p class="account-notice" role="status" th:if="${param.saved}">Address saved.</p>
+<p class="account-notice" role="status" th:if="${param.selected}">Default delivery address updated.</p>
+<p class="account-notice" role="status" th:if="${param.deleted}">Address removed.</p>
+<form class="form-grid" method="post" th:action="${editingId == null} ? @{/profile/addresses} : @{/profile/addresses/{id}(id=${editingId})}" th:object="${addressForm}"><div class="validation full" role="alert" th:if="${#fields.hasErrors('*')}"><p th:each="e : ${#fields.errors('*')}" th:text="${e}"></p></div>
+<h2 th:text="${editingId == null ? 'Add address' : 'Edit address'}">Add address</h2>
+<div class="form-group"><label for="label">Label</label><input id="label" th:field="*{label}" required maxlength="40" placeholder="Home or work"></div>
+<div class="form-group"><label for="address">Delivery address</label><textarea id="address" th:field="*{address}" required maxlength="255" rows="3" autocomplete="street-address"></textarea></div>
+<button class="btn" type="submit">Save address</button><a th:if="${editingId != null}" class="text-link" th:href="@{/profile/addresses}">Cancel editing</a></form>
+<h2>Your addresses</h2><p th:if="${#lists.isEmpty(addresses)}">No saved addresses yet.</p>
+<article class="account-entry" th:each="address : ${addresses}"><h3 th:text="${address.label}"></h3>
+<strong th:if="${address.defaultAddress}" class="account-badge">Default</strong><p class="preserve-lines" th:text="${address.address}"></p>
+<div class="account-actions"><a class="btn btn-outline" th:href="@{/profile/addresses/{id}/edit(id=${address.id})}">Edit</a>
+<form method="post" th:action="@{/profile/addresses/{id}/default(id=${address.id})}"><button class="btn" type="submit" th:disabled="${address.defaultAddress}">Use as default</button></form>
+<form method="post" th:action="@{/profile/addresses/{id}/delete(id=${address.id})}"><button class="btn btn-outline" type="submit">Remove</button></form></div></article>
+<p><a class="text-link" th:href="@{/profile}">Back to profile</a></p></section></main>
+<footer>Bula Basket · Fresh groceries around Suva · Fiji</footer></body></html>

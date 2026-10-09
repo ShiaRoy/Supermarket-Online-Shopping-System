@@ -13,18 +13,25 @@
     />
     <link rel="stylesheet" href="/css/styles.css" th:href="@{/css/styles.css}" />
     <link rel="stylesheet" th:href="@{/css/navigation.css}" />
+    <link rel="stylesheet" th:href="@{/css/orders-payments.css}" />
   </head>
   <body data-page="confirmation">
     <header th:replace="~{fragments :: siteHeader('orders')}"></header>
     <main>
       <section class="shell confirmation">
-        <div class="success">✓</div>
-        <h1>Order placed — vinaka!</h1>
+        <div class="success cancellation-icon" th:if="${order.status.name() == 'CANCELLED'}" aria-hidden="true">&times;</div>
+        <div class="success" th:unless="${order.status.name() == 'CANCELLED'}" aria-hidden="true">&#10003;</div>
+        <h1 th:text="${order.status.name() == 'CANCELLED'} ? 'Order cancelled' : 'Order placed — vinaka!'">Order placed — vinaka!</h1>
         <p class="confirmation-sub">
           <span th:text="|Order #${order.id}|"></span> &middot;
           <span th:text="${order.orderDate != null ? #temporals.format(order.orderDate, 'dd MMM yyyy, h:mm a') : 'Date not available'}"></span>
         </p>
-        <div class="progress">
+        <div class="panel cancellation-panel" th:if="${order.status.name() == 'CANCELLED'}">
+          <h2>Cancellation confirmed</h2>
+          <p class="confirmation-sub">This order will not be delivered.</p>
+          <p class="confirmation-sub" th:if="${payment != null and payment.status.name() == 'REFUNDED'}">Your simulated refund has been recorded.</p>
+        </div>
+        <div class="progress" th:unless="${order.status.name() == 'CANCELLED'}">
           <div class="progress-step active">
             <div class="dot"></div>
             Confirmed
@@ -42,40 +49,44 @@
             Delivered
           </div>
         </div>
-        <div class="panel" style="text-align: left">
+        <div class="panel confirmation-details">
           <h2>Order details</h2>
           <div class="detail-line">
             <span>Order ID</span><span th:text="|#${order.id}|"></span>
           </div>
           <div class="detail-line">
-            <span>Order status</span><span th:text="${order.status}"></span>
+            <span>Order status</span>
+            <span><span class="confirmation-status" th:classappend="${' confirmation-status--' + #strings.toLowerCase(order.status.name())}" th:text="${order.status}"></span></span>
           </div>
           <div class="detail-line">
-            <span>Payment status</span>
-            <span th:text="${payment != null and payment.status != null ? payment.status : 'No payment recorded'}"></span>
+            <span th:text="${payment != null and payment.status.name() == 'REFUNDED'} ? 'Refund status' : 'Payment status'">Payment status</span>
+            <span><span class="confirmation-status" th:classappend="${payment != null and payment.status != null ? ' confirmation-status--' + #strings.toLowerCase(payment.status.name()) : ''}" th:text="${payment != null and payment.status != null ? payment.status : 'No payment recorded'}"></span></span>
           </div>
         </div>
-        <div class="panel order-items" style="margin-top: 16px">
-          <h2>Payment details</h2>
+        <div class="panel order-items confirmation-details">
+          <h2 th:text="${payment != null and payment.status.name() == 'REFUNDED'} ? 'Refund details' : 'Payment details'">Payment details</h2>
           <div class="detail-line">
-            <span>Transaction reference</span>
-            <span th:text="${payment != null and !#strings.isEmpty(payment.transactionReference) ? payment.transactionReference : 'Not available'}"></span>
+            <span th:text="${payment != null and payment.status.name() == 'REFUNDED'} ? 'Refund reference' : 'Transaction reference'">Transaction reference</span>
+            <span><code class="transaction-reference" th:text="${payment != null and !#strings.isEmpty(payment.transactionReference) ? payment.transactionReference : 'Not available'}"></code></span>
           </div>
           <div class="detail-line">
-            <span>Payment date</span>
+            <span th:text="${payment != null and payment.status.name() == 'REFUNDED'} ? 'Refund date' : 'Payment date'">Payment date</span>
             <span th:text="${payment != null and payment.paymentDate != null ? #temporals.format(payment.paymentDate, 'dd MMM yyyy, h:mm a') : 'Not available'}"></span>
           </div>
           <div class="detail-line" th:if="${payment != null and !#strings.isEmpty(payment.failureReason)}">
             <span>Failure reason</span><span th:text="${payment.failureReason}"></span>
           </div>
           <div class="detail-line paid">
-            <span>Total amount</span>
-            <strong th:text="${order.totalAmount != null ? '$' + #numbers.formatDecimal(order.totalAmount, 1, 'COMMA', 2, 'POINT') : 'Not available'}"></strong>
+            <span th:text="${payment != null and payment.status.name() == 'REFUNDED'} ? 'Refund amount' : 'Total amount'">Total amount</span>
+            <strong th:text="${payment != null and payment.status.name() == 'REFUNDED' and payment.amount != null ? 'FJ$ ' + #numbers.formatDecimal(payment.amount, 1, 'COMMA', 2, 'POINT') : (order.totalAmount != null ? 'FJ$ ' + #numbers.formatDecimal(order.totalAmount, 1, 'COMMA', 2, 'POINT') : 'Not available')}"></strong>
           </div>
         </div>
         <div class="actions">
-          <a class="btn btn-outline" th:href="@{/}">Back to home</a
-          ><a class="btn" th:href="@{/orders}">View my orders</a>
+          <a class="btn btn-outline" th:href="@{/}">Back to home</a>
+          <form th:if="${canCancel}" th:action="@{/orders/{orderId}/cancel(orderId=${order.id})}" method="post">
+            <button class="btn btn-outline" type="submit">Cancel order</button>
+          </form>
+          <a class="btn" th:href="@{/orders}">View my orders</a>
         </div>
       </section>
     </main>

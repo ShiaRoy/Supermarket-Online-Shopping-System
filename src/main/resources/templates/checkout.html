@@ -3,19 +3,39 @@
 <head th:replace="~{fragments :: head('Checkout')}"></head>
 <body>
 <header th:replace="~{fragments :: siteHeader('cart')}"></header>
-<main class="shop-container">
+<main class="shop-container checkout-page">
   <div class="cart-page-head"><div><h1>Checkout</h1><p class="muted">Confirm delivery and payment details.</p></div><a class="btn btn-outline-success" th:href="@{/cart}">Back to cart</a></div>
   <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
-  <form th:action="@{/checkout}" method="post" th:object="${checkout}" class="row g-4">
+  <form th:action="@{/checkout}" method="post" th:object="${checkout}" class="row g-4 checkout-form">
     <input type="hidden" th:field="*{token}">
-    <div class="col-lg-7"><section class="panel delivery"><h2>Delivery details</h2>
-      <label for="deliverySlot" class="form-label">Time slot</label><select id="deliverySlot" th:field="*{deliverySlot}" class="form-select" required><option value="">Choose a delivery time</option><option th:each="slot : ${slots}" th:value="${slot}" th:text="${slot}"></option></select>
-      <label for="address" class="form-label mt-3">Address</label><textarea id="address" th:field="*{address}" class="form-control" rows="3" maxlength="255" required placeholder="Street, suburb and city"></textarea>
+    <div class="col-lg-7"><section class="panel delivery checkout-delivery"><h2>Delivery details</h2>
+      <label for="deliverySlot" class="form-label mt-3">Time slot</label>
+      <select id="deliverySlot" th:field="*{deliverySlot}" class="form-select" required><option value="">Choose a delivery time</option><option th:each="slot : ${slots}" th:value="${slot}" th:text="${slot}"></option></select>
+      <label for="savedAddressId" class="form-label mt-3">Use a saved address (optional)</label>
+      <select id="savedAddressId" th:field="*{savedAddressId}" class="form-select">
+        <option value="">Enter a delivery address below</option>
+        <option th:if="${profileAddress != null and !profileAddress.isBlank()}" value="-1" th:selected="${checkout.savedAddressId == -1}" th:text="'Profile address: ' + ${profileAddress}"></option>
+        <option th:each="saved : ${savedAddresses}" th:value="${saved.id}" th:selected="${checkout.savedAddressId == saved.id}" th:text="${saved.label + ': ' + saved.address}"></option>
+      </select>
+      <p class="address-hint">Choose a saved address, or enter a new delivery address.</p>
+      <div class="structured-address">
+        <div><label for="deliveryArea" class="form-label">Delivery area</label>
+          <select id="deliveryArea" th:field="*{deliveryArea}" class="form-select"><option value="">Choose an area</option><option th:each="area : ${deliveryAreas}" th:value="${area}" th:text="${area}"></option></select>
+        </div>
+        <div><label for="buildingNumber" class="form-label">House / lot / building number</label><input id="buildingNumber" th:field="*{buildingNumber}" class="form-control" maxlength="30" autocomplete="address-line1" placeholder="e.g. 12 or Lot 4"></div>
+        <div class="address-wide"><label for="street" class="form-label">Street / road</label><input id="street" th:field="*{street}" class="form-control" maxlength="120" autocomplete="street-address" placeholder="e.g. Victoria Parade"></div>
+        <div class="address-wide"><label for="deliveryInstructions" class="form-label">Delivery instructions (optional)</label><textarea id="deliveryInstructions" th:field="*{deliveryInstructions}" class="form-control" rows="2" maxlength="160" placeholder="Landmark or delivery note"></textarea></div>
+      </div>
+      <small class="address-hint">New addresses are checked for a supported area, a street name and a building number. These checks cannot confirm that an address physically exists.</small>
     </section></div>
-    <div class="col-lg-5"><section class="panel summary"><h2>Order summary</h2>
-      <div class="summary-row"><span>Subtotal</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.subtotal,1,2)}"></span></div><div class="summary-row"><span>Delivery fee</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.delivery,1,2)}"></span></div><div class="summary-row"><span>Promo discount</span><span th:text="'−FJ$ ' + ${#numbers.formatDecimal(basket.discount,1,2)}"></span></div><div class="summary-row total"><strong>Total</strong><strong th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.total,1,2)}"></strong></div>
+    <div class="col-lg-5"><section class="panel summary checkout-summary"><h2>Order summary</h2>
+      <div class="summary-row"><span>Subtotal</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.subtotal,1,2)}"></span></div>
+      <div class="summary-row"><span>Delivery fee</span><span th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.delivery,1,2)}"></span></div>
+      <div class="summary-row" th:each="offer : ${basket.appliedPromos}"><span><strong th:text="${offer.code}"></strong> <small th:text="${offer.description}"></small></span><span th:text="'−FJ$ ' + ${#numbers.formatDecimal(offer.amount,1,2)}"></span></div>
+      <div class="summary-row"><span>Total discounts</span><span th:text="'−FJ$ ' + ${#numbers.formatDecimal(basket.discount,1,2)}"></span></div>
+      <div class="summary-row total"><strong>Total</strong><strong th:text="'FJ$ ' + ${#numbers.formatDecimal(basket.total,1,2)}"></strong></div>
       <fieldset><legend>Pay with</legend><label class="payment" th:each="payment : ${payments}"><input type="radio" th:field="*{paymentMethod}" th:value="${payment}" required><span th:text="${payment}"></span></label></fieldset>
-      <div class="alert alert-danger" th:if="${#fields.hasAnyErrors()}"><p th:each="err : ${#fields.allErrors()}" th:text="${err}"></p></div>
+      <div class="alert alert-danger" th:if="${#fields.hasAnyErrors()}" role="alert"><p th:each="err : ${#fields.allErrors()}" th:text="${err}"></p></div>
       <button class="place-order" th:disabled="${basket.lines.isEmpty()}">Place order</button><p class="payment-note">Payment is simulated for the Phase 1 checkout flow.</p>
     </section></div>
   </form>

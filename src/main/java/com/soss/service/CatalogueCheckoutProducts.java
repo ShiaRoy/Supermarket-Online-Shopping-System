@@ -10,9 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class CatalogueCheckoutProducts implements CheckoutProducts {
 
     private final CatalogueService catalogue;
+    private final PromotionService promotions;
 
-    public CatalogueCheckoutProducts(CatalogueService catalogue) {
+    public CatalogueCheckoutProducts(CatalogueService catalogue, PromotionService promotions) {
         this.catalogue = catalogue;
+        this.promotions = promotions;
     }
 
     @Override
@@ -32,7 +34,8 @@ public class CatalogueCheckoutProducts implements CheckoutProducts {
     private ProductSnapshot snapshot(Inventory stock) {
         Product product = stock.getProduct();
         return new ProductSnapshot(product.getId(), product.getName(),
-                product.getIcon(), product.getPrice(),
-                product.isActive() && stock.getQuantity() > 0);
+                product.getIcon(), promotions.price(product),
+                product.isActive() && stock.getQuantity() > 0,
+                stock.getQuantity());
     }
 }

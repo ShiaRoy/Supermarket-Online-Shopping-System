@@ -154,7 +154,8 @@ public class OrderCheckoutOrders implements CheckoutOrders {
          */
         paymentService.simulatePayment(
                 savedOrder.getId(),
-                true);
+                true,
+                request.paymentMethod());
 
         /*
          * 3. Deduct real inventory stock.
@@ -166,6 +167,8 @@ public class OrderCheckoutOrders implements CheckoutOrders {
                     storeId,
                     item.quantity());
         }
+        savedOrder.setInventoryDeducted(true);
+        orders.save(savedOrder);
 
         /*
          * 4. Create Delivery record automatically.

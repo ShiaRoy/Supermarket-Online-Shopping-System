@@ -28,7 +28,18 @@ public class Payment {
     private LocalDateTime paymentDate;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20, columnDefinition = "varchar(20)")
     private PaymentStatus status = PaymentStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentTransactionType transactionType = PaymentTransactionType.PAYMENT;
+
+    @Column(length = 40)
+    private String paymentMethod;
+
+    /** Links a simulated refund to the successful payment it reverses. */
+    private Long relatedPaymentId;
 
     private String transactionReference;
 
@@ -82,6 +93,30 @@ public class Payment {
 
     public void setStatus(PaymentStatus status) {
         this.status = status;
+    }
+
+    public PaymentTransactionType getTransactionType() {
+        return transactionType;
+    }
+
+    public void setTransactionType(PaymentTransactionType transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    public Long getRelatedPaymentId() {
+        return relatedPaymentId;
+    }
+
+    public void setRelatedPaymentId(Long relatedPaymentId) {
+        this.relatedPaymentId = relatedPaymentId;
     }
 
     public String getTransactionReference() {

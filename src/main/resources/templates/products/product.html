@@ -38,9 +38,10 @@
       </p>
 
       <p class="price"
-         th:text="|FJ$ ${#numbers.formatDecimal(item.product.price,1,2)}|">
+         th:text="|FJ$ ${#numbers.formatDecimal(promotionPrices.containsKey(item.product.id) ? promotionPrices[item.product.id] : item.product.price,1,2)}|">
         FJ$ 0.00
       </p>
+      <p th:if="${promotionPrices.containsKey(item.product.id)}">Promotion <del th:text="|FJ$ ${#numbers.formatDecimal(item.product.price,1,2)}|"></del></p>
 
       <p class="description"
          th:text="${item.product.description}">

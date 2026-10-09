@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{products/fragments :: head('Promotions')}"></head>
+<body>
+<header th:replace="~{fragments :: siteHeader('inventory')}"></header>
+<main class="shell">
+  <nav class="module-links" aria-label="Inventory views"><a th:href="@{/inventory}">Inventory</a><a th:href="@{/inventory/promotions}">Promotions</a></nav>
+  <div class="inventory-page-head"><h1 class="section-title">Product promotions</h1><a class="btn" th:href="@{/inventory/promotions/new}">+ Add promotion</a></div>
+  <p class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></p>
+  <p th:if="${#lists.isEmpty(promotions)}">No promotions yet.</p>
+  <div class="table-responsive" th:unless="${#lists.isEmpty(promotions)}">
+    <table class="table inventory-table-real"><thead><tr><th>Promotion</th><th>Product</th><th>Discount</th><th>Dates (Fiji)</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody><tr th:each="promotion : ${promotions}">
+      <td th:text="${promotion.name}"></td><td th:text="${promotion.product.name}"></td>
+      <td th:text="|${promotion.percentOff}%|"></td>
+      <td th:text="|${promotion.startsOn} to ${promotion.endsOn}|"></td>
+      <td th:text="${promotion.statusOn(today)}"></td>
+      <td><a class="btn btn-outline btn-small" th:href="@{/inventory/promotions/{id}/edit(id=${promotion.id})}">Edit</a></td>
+    </tr></tbody></table>
+  </div>
+</main>
+<footer th:replace="~{products/fragments :: footer}"></footer>
+</body></html>

@@ -5,6 +5,7 @@ import java.util.Optional;
 
 /** Cart-owned integration contract. Implement using the shared Products module. */
 public interface CheckoutProducts {
-    record ProductSnapshot(Long id, String name, String icon, BigDecimal price, boolean active) {}
+    record ProductSnapshot(Long id, String name, String icon, BigDecimal price,
+                           boolean active, int availableQuantity) {}
     Optional<ProductSnapshot> find(Long productId);
 }

@@ -1,21 +1,29 @@
 package com.soss.service.delivery;
 
+import com.soss.model.Role;
+import com.soss.model.User;
 import com.soss.model.delivery.Delivery;
 import com.soss.model.delivery.DeliveryStatus;
+import com.soss.repository.UserRepository;
 import com.soss.repository.delivery.DeliveryRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -30,6 +38,9 @@ class DeliveryServiceTest {
     @Mock
     private DeliveryRepository repository;
 
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private DeliveryService service;
 
@@ -39,7 +50,6 @@ class DeliveryServiceTest {
         return delivery;
     }
 
-    // ---- createForOrder ----
 
     @Test
     void createForOrder_savesNewDeliveryAsConfirmed() {
@@ -79,16 +89,17 @@ class DeliveryServiceTest {
         verify(repository, never()).save(any(Delivery.class));
     }
 
-    // ---- advanceStatus ----
+    
 
     @Test
-    void advanceStatus_movesToTheNextStage() {
+    void advanceStatus_movesToTheNextStageAndRecordsTheTime() {
         Delivery delivery = deliveryWithStatus(DeliveryStatus.CONFIRMED);
         when(repository.findById(5L)).thenReturn(Optional.of(delivery));
 
-        service.advanceStatus(5L, DeliveryStatus.PACKED);
+        service.advanceStatus(5L, DeliveryStatus.PACKED, null);
 
         assertEquals(DeliveryStatus.PACKED, delivery.getStatus());
+        assertNotNull(delivery.getPackedAt());
     }
 
     @Test
@@ -97,7 +108,7 @@ class DeliveryServiceTest {
         when(repository.findById(5L)).thenReturn(Optional.of(delivery));
 
         assertThrows(IllegalStateException.class,
-                () -> service.advanceStatus(5L, DeliveryStatus.DELIVERED));
+                () -> service.advanceStatus(5L, DeliveryStatus.DELIVERED, "Mere Tui"));
         assertEquals(DeliveryStatus.CONFIRMED, delivery.getStatus());
     }
 
@@ -107,7 +118,7 @@ class DeliveryServiceTest {
         when(repository.findById(5L)).thenReturn(Optional.of(delivery));
 
         assertThrows(IllegalStateException.class,
-                () -> service.advanceStatus(5L, DeliveryStatus.CONFIRMED));
+                () -> service.advanceStatus(5L, DeliveryStatus.CONFIRMED, null));
         assertEquals(DeliveryStatus.PACKED, delivery.getStatus());
     }
 
@@ -117,7 +128,7 @@ class DeliveryServiceTest {
         when(repository.findById(5L)).thenReturn(Optional.of(delivery));
 
         assertThrows(IllegalStateException.class,
-                () -> service.advanceStatus(5L, DeliveryStatus.DELIVERED));
+                () -> service.advanceStatus(5L, DeliveryStatus.DELIVERED, "Mere Tui"));
         assertEquals(DeliveryStatus.DELIVERED, delivery.getStatus());
     }
 
@@ -126,23 +137,309 @@ class DeliveryServiceTest {
         when(repository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(NoSuchElementException.class,
-                () -> service.advanceStatus(99L, DeliveryStatus.PACKED));
+                () -> service.advanceStatus(99L, DeliveryStatus.PACKED, null));
     }
 
-    // ---- assignStaff ----
+    @Test
+    void advanceStatus_needsADriverBeforeGoingOutForDelivery() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.PACKED);
+        when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+
+        assertThrows(IllegalStateException.class,
+                () -> service.advanceStatus(5L, DeliveryStatus.OUT_FOR_DELIVERY, null));
+        assertEquals(DeliveryStatus.PACKED, delivery.getStatus());
+        assertNull(delivery.getOutForDeliveryAt());
+    }
 
     @Test
-    void assignStaff_recordsTheStaffMember() {
+    void advanceStatus_goesOutForDeliveryOnceADriverIsAssigned() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.PACKED);
+        delivery.setAssignedStaffId(42L);
+        when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+
+        service.advanceStatus(5L, DeliveryStatus.OUT_FOR_DELIVERY, null);
+
+        assertEquals(DeliveryStatus.OUT_FOR_DELIVERY, delivery.getStatus());
+        assertNotNull(delivery.getOutForDeliveryAt());
+    }
+
+    @Test
+    void advanceStatus_sendingOutAgainClearsTheOldFailedAttempt() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.PACKED);
+        delivery.setAssignedStaffId(42L);
+        delivery.setFailedAttemptReason("Nobody home");
+        delivery.setFailedAttemptAt(LocalDateTime.now());
+        when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+
+        service.advanceStatus(5L, DeliveryStatus.OUT_FOR_DELIVERY, null);
+
+        assertNull(delivery.getFailedAttemptReason());
+        assertNull(delivery.getFailedAttemptAt());
+    }
+
+    @Test
+    void advanceStatus_deliveredNeedsToKnowWhoReceivedIt() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.OUT_FOR_DELIVERY);
+        when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+
+        assertThrows(IllegalStateException.class,
+                () -> service.advanceStatus(5L, DeliveryStatus.DELIVERED, null));
+        assertThrows(IllegalStateException.class,
+                () -> service.advanceStatus(5L, DeliveryStatus.DELIVERED, "   "));
+        assertEquals(DeliveryStatus.OUT_FOR_DELIVERY, delivery.getStatus());
+        assertNull(delivery.getReceivedBy());
+    }
+
+    @Test
+    void advanceStatus_deliveredRecordsWhoReceivedItAndWhen() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.OUT_FOR_DELIVERY);
+        when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+
+        service.advanceStatus(5L, DeliveryStatus.DELIVERED, "  Mere Tui  ");
+
+        assertEquals(DeliveryStatus.DELIVERED, delivery.getStatus());
+        assertEquals("Mere Tui", delivery.getReceivedBy());
+        assertNotNull(delivery.getDeliveredAt());
+    }
+
+    @Test
+    void advanceStatus_rejectsACancelledDelivery() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.CONFIRMED);
+        delivery.setCancelledAt(LocalDateTime.now());
+        when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+
+        assertThrows(IllegalStateException.class,
+                () -> service.advanceStatus(5L, DeliveryStatus.PACKED, null));
+        assertEquals(DeliveryStatus.CONFIRMED, delivery.getStatus());
+    }
+
+   
+
+    @Test
+    void reportFailedAttempt_sendsTheDeliveryBackToPackedWithTheReason() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.OUT_FOR_DELIVERY);
+        delivery.setOutForDeliveryAt(LocalDateTime.now());
+        when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+
+        service.reportFailedAttempt(5L, "  Nobody home  ");
+
+        assertEquals(DeliveryStatus.PACKED, delivery.getStatus());
+        assertEquals("Nobody home", delivery.getFailedAttemptReason());
+        assertNotNull(delivery.getFailedAttemptAt());
+        assertNull(delivery.getOutForDeliveryAt());
+    }
+
+    @Test
+    void reportFailedAttempt_onlyWorksWhileOutForDelivery() {
         Delivery delivery = deliveryWithStatus(DeliveryStatus.CONFIRMED);
         when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+
+        assertThrows(IllegalStateException.class,
+                () -> service.reportFailedAttempt(5L, "Nobody home"));
+        assertEquals(DeliveryStatus.CONFIRMED, delivery.getStatus());
+    }
+
+    @Test
+    void reportFailedAttempt_needsAReason() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.OUT_FOR_DELIVERY);
+        when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.reportFailedAttempt(5L, "   "));
+        assertEquals(DeliveryStatus.OUT_FOR_DELIVERY, delivery.getStatus());
+    }
+
+    
+
+    @Test
+    void confirmReceived_recordsWhenTheCustomerConfirmed() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.DELIVERED);
+        when(repository.findByOrderId(1L)).thenReturn(Optional.of(delivery));
+
+        service.confirmReceived(1L);
+
+        assertNotNull(delivery.getCustomerConfirmedAt());
+    }
+
+    @Test
+    void confirmReceived_isRefusedBeforeTheOrderIsDelivered() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.OUT_FOR_DELIVERY);
+        when(repository.findByOrderId(1L)).thenReturn(Optional.of(delivery));
+
+        assertThrows(IllegalStateException.class, () -> service.confirmReceived(1L));
+        assertNull(delivery.getCustomerConfirmedAt());
+    }
+
+    @Test
+    void confirmReceived_keepsTheFirstConfirmationTime() {
+        LocalDateTime first = LocalDateTime.of(2026, 10, 3, 9, 0);
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.DELIVERED);
+        delivery.setCustomerConfirmedAt(first);
+        when(repository.findByOrderId(1L)).thenReturn(Optional.of(delivery));
+
+        service.confirmReceived(1L);
+
+        assertEquals(first, delivery.getCustomerConfirmedAt());
+    }
+
+    @Test
+    void confirmReceived_failsWhenTheOrderHasNoDelivery() {
+        when(repository.findByOrderId(7L)).thenReturn(Optional.empty());
+
+        assertThrows(NoSuchElementException.class, () -> service.confirmReceived(7L));
+    }
+
+    
+
+    @Test
+    void cancelForOrder_marksAnEarlyDeliveryAsCancelled() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.PACKED);
+        when(repository.lockByOrderId(1L)).thenReturn(Optional.of(delivery));
+
+        Optional<Delivery> result = service.cancelForOrder(1L);
+
+        assertTrue(result.isPresent());
+        assertNotNull(delivery.getCancelledAt());
+    }
+
+    @Test
+    void cancelForOrder_isRefusedOnceTheDeliveryIsOnItsWay() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.OUT_FOR_DELIVERY);
+        when(repository.lockByOrderId(1L)).thenReturn(Optional.of(delivery));
+
+        assertThrows(IllegalStateException.class, () -> service.cancelForOrder(1L));
+        assertNull(delivery.getCancelledAt());
+    }
+
+    @Test
+    void cancelForOrder_doesNothingWhenTheOrderHasNoDelivery() {
+        when(repository.lockByOrderId(7L)).thenReturn(Optional.empty());
+
+        assertTrue(service.cancelForOrder(7L).isEmpty());
+    }
+
+    
+
+    private User userWithRole(Long id, String name, Role role) {
+        User user = new User();
+        user.setFullName(name);
+        user.setRole(role);
+        ReflectionTestUtils.setField(user, "id", id);
+        return user;
+    }
+
+    @Test
+    void assignStaff_recordsTheDeliveryDriver() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.CONFIRMED);
+        when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+        when(userRepository.findById(42L)).thenReturn(Optional.of(userWithRole(42L, "Sefa Naidu", Role.DELIVERY)));
 
         service.assignStaff(5L, 42L);
 
         assertEquals(42L, delivery.getAssignedStaffId());
     }
 
-    // ---- findAll ----
+    @Test
+    void cancelForOrder_rechecksUnderLockAndPreservesTheDeliveryRecord() {
+        Delivery confirmed = deliveryWithStatus(DeliveryStatus.CONFIRMED);
+        when(repository.lockByOrderId(1L)).thenReturn(Optional.of(confirmed));
 
+        Optional<Delivery> result = service.cancelForOrder(1L);
+
+        assertTrue(result.isPresent());
+        assertNotNull(confirmed.getCancelledAt());
+        verify(repository, never()).delete(any(Delivery.class));
+
+        Delivery inProgress = deliveryWithStatus(DeliveryStatus.OUT_FOR_DELIVERY);
+        when(repository.lockByOrderId(2L)).thenReturn(Optional.of(inProgress));
+        assertThrows(IllegalStateException.class, () -> service.cancelForOrder(2L));
+        assertNull(inProgress.getCancelledAt());
+
+        Delivery delivered = deliveryWithStatus(DeliveryStatus.DELIVERED);
+        when(repository.lockByOrderId(3L)).thenReturn(Optional.of(delivered));
+        assertThrows(IllegalStateException.class, () -> service.cancelForOrder(3L));
+        assertNull(delivered.getCancelledAt());
+    }
+
+    @Test
+    void assignStaff_rejectsSomeoneWhoIsNotADeliveryDriver() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.CONFIRMED);
+        when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+        when(userRepository.findById(8L)).thenReturn(Optional.of(userWithRole(8L, "A Customer", Role.CUSTOMER)));
+
+        assertThrows(IllegalArgumentException.class, () -> service.assignStaff(5L, 8L));
+        assertNull(delivery.getAssignedStaffId());
+    }
+
+    @Test
+    void assignStaff_rejectsAnIdThatDoesNotExist() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.CONFIRMED);
+        when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+        when(userRepository.findById(7L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> service.assignStaff(5L, 7L));
+        assertNull(delivery.getAssignedStaffId());
+    }
+
+    @Test
+    void assignStaff_canRemoveTheDriverBeforeTheDeliveryGoesOut() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.PACKED);
+        delivery.setAssignedStaffId(42L);
+        when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+
+        service.assignStaff(5L, null);
+
+        assertNull(delivery.getAssignedStaffId());
+    }
+
+    @Test
+    void assignStaff_cannotRemoveTheDriverOnceOutForDelivery() {
+        Delivery delivery = deliveryWithStatus(DeliveryStatus.OUT_FOR_DELIVERY);
+        delivery.setAssignedStaffId(42L);
+        when(repository.findById(5L)).thenReturn(Optional.of(delivery));
+
+        assertThrows(IllegalStateException.class, () -> service.assignStaff(5L, null));
+        assertEquals(42L, delivery.getAssignedStaffId());
+    }
+
+    @Test
+    void assignStaff_isRefusedForCancelledAndDeliveredDeliveries() {
+        Delivery cancelled = deliveryWithStatus(DeliveryStatus.CONFIRMED);
+        cancelled.setCancelledAt(LocalDateTime.now());
+        Delivery delivered = deliveryWithStatus(DeliveryStatus.DELIVERED);
+        when(repository.findById(5L)).thenReturn(Optional.of(cancelled));
+        when(repository.findById(6L)).thenReturn(Optional.of(delivered));
+
+        assertThrows(IllegalStateException.class, () -> service.assignStaff(5L, 42L));
+        assertThrows(IllegalStateException.class, () -> service.assignStaff(6L, 42L));
+    }
+
+    @Test
+    void findDrivers_returnsOnlyDeliveryAccountsSortedByName() {
+        when(userRepository.findAll()).thenReturn(List.of(
+                userWithRole(1L, "Zara Ali", Role.DELIVERY),
+                userWithRole(2L, "A Customer", Role.CUSTOMER),
+                userWithRole(3L, "mere tui", Role.DELIVERY),
+                userWithRole(4L, "Some Staff", Role.STAFF)));
+
+        List<User> drivers = service.findDrivers();
+
+        assertEquals(2, drivers.size());
+        assertEquals("mere tui", drivers.get(0).getFullName());
+        assertEquals("Zara Ali", drivers.get(1).getFullName());
+    }
+
+    @Test
+    void driverNames_mapsEachDriverIdToTheirName() {
+        when(userRepository.findAll()).thenReturn(List.of(
+                userWithRole(3L, "Mere Tui", Role.DELIVERY),
+                userWithRole(4L, "Some Staff", Role.STAFF)));
+
+        Map<Long, String> names = service.driverNames();
+
+        assertEquals(1, names.size());
+        assertEquals("Mere Tui", names.get(3L));
+    }
     @Test
     void findAll_withStatusReturnsOnlyThatStage() {
         Delivery packed = deliveryWithStatus(DeliveryStatus.PACKED);

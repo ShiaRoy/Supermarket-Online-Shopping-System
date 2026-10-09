@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 
 //handle requests for the registration, login and user profiles.
 @Controller
+// Handles registration, login pages, profile editing, and role-specific access pages.
 public class AccountController {
  private final AccountService accounts;
  
@@ -24,7 +25,7 @@ public class AccountController {
   try{accounts.register(f);}catch(IllegalArgumentException|DataIntegrityViolationException e){errors.rejectValue("email","duplicate","An account already uses that email.");return "auth/register";}
   return "redirect:/login?registered";
  }
- @GetMapping("/profile") public String profile(Principal p,Model m){User u=accounts.profile(p.getName());ProfileForm f=new ProfileForm();f.setFullName(u.getFullName());f.setPhone(u.getPhone());f.setDeliveryAddress(u.getDeliveryAddress());m.addAttribute("profile",f);m.addAttribute("account",u);return "auth/profile";}
+ @GetMapping("/profile") public String profile(Principal p,Model m){User u=accounts.profile(p.getName());ProfileForm f=new ProfileForm();f.setFullName(u.getFullName());f.setPhone(u.getPhone());f.setDeliveryAddress(u.getDeliveryAddress());f.setPreferredStore(u.getPreferredStore());m.addAttribute("profile",f);m.addAttribute("account",u);return "auth/profile";}
  @PostMapping("/profile") public String save(Principal p,@Valid @ModelAttribute("profile") ProfileForm f,BindingResult errors,Model m){
   if(errors.hasErrors()){m.addAttribute("account",accounts.profile(p.getName()));return "auth/profile";}
   accounts.update(p.getName(),f);return "redirect:/profile?saved";
@@ -38,15 +39,13 @@ public String customerArea(Model m) {
 }
 //display the staff access page.
 @GetMapping("/staff")
-public String staffArea(Model m) {
-    m.addAttribute("area", "staff");
-    return "auth/access";
+public String staffArea() {
+    return "redirect:/inventory";
 }
 //display the admin access page.
 @GetMapping("/admin")
-public String adminArea(Model m) {
-    m.addAttribute("area", "admin");
-    return "auth/access";
+public String adminArea() {
+    return "redirect:/admin/dashboard";
 }
 
  @GetMapping("/access-denied")

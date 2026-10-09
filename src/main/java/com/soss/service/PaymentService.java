@@ -9,6 +9,8 @@ import com.soss.repository.PaymentRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Comparator;
+import com.soss.model.PaymentTransactionType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,11 @@ public class PaymentService {
 
     @Transactional
     public Payment simulatePayment(Long orderId, boolean shouldSucceed) {
+        return simulatePayment(orderId, shouldSucceed, null);
+    }
+
+    @Transactional
+    public Payment simulatePayment(Long orderId, boolean shouldSucceed, String paymentMethod) {
         if (orderId == null) {
             throw new IllegalArgumentException("Order ID must not be null");
         }
@@ -41,6 +48,8 @@ public class PaymentService {
         payment.setOrderId(orderId);
         payment.setAmount(order.getTotalAmount());
         payment.setTransactionReference(UUID.randomUUID().toString());
+        payment.setTransactionType(PaymentTransactionType.PAYMENT);
+        payment.setPaymentMethod(paymentMethod);
 
         if (shouldSucceed) {
             payment.setStatus(PaymentStatus.SUCCESS);
@@ -62,6 +71,53 @@ public class PaymentService {
             throw new IllegalArgumentException("Order ID must not be null");
         }
         return paymentRepository.findByOrderId(orderId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Payment> getPaymentHistory(List<Long> orderIds) {
+        if (orderIds == null || orderIds.isEmpty()) {
+            return List.of();
+        }
+        return paymentRepository.findByOrderIdInOrderByPaymentDateDesc(orderIds);
+    }
+
+    /**
+     * Records one simulated refund for the most recent successful original payment.
+     * The original payment remains SUCCESS so payment history is auditable.
+     */
+    @Transactional
+    public Optional<Payment> recordRefundForOrder(Long orderId) {
+        if (orderId == null) {
+            throw new IllegalArgumentException("Order ID must not be null");
+        }
+        List<Payment> history = paymentRepository.findByOrderId(orderId);
+        Optional<Payment> existingRefund = history.stream()
+                .filter(payment -> payment.getTransactionType() == PaymentTransactionType.REFUND)
+                .findFirst();
+        if (existingRefund.isPresent()) {
+            return existingRefund;
+        }
+        Optional<Payment> originalPayment = history.stream()
+                .filter(payment -> payment.getTransactionType() == null
+                        || payment.getTransactionType() == PaymentTransactionType.PAYMENT)
+                .filter(payment -> payment.getStatus() == PaymentStatus.SUCCESS)
+                .filter(payment -> payment.getAmount() != null && payment.getAmount().signum() > 0)
+                .max(Comparator.comparing(Payment::getPaymentDate,
+                        Comparator.nullsFirst(Comparator.naturalOrder())));
+        if (originalPayment.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Payment original = originalPayment.get();
+        Payment refund = new Payment();
+        refund.setOrderId(orderId);
+        refund.setAmount(original.getAmount());
+        refund.setStatus(PaymentStatus.REFUNDED);
+        refund.setTransactionType(PaymentTransactionType.REFUND);
+        refund.setPaymentMethod(original.getPaymentMethod());
+        refund.setRelatedPaymentId(original.getId());
+        refund.setTransactionReference("REFUND-" + UUID.randomUUID());
+        return Optional.of(paymentRepository.save(refund));
     }
 
     @Transactional(readOnly = true)

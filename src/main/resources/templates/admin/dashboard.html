@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Admin dashboard')}"></head>
+<body><header th:replace="~{fragments :: siteHeader('admin-dashboard')}"></header>
+<main class="admin-shell">
+  <div class="admin-title"><div><p class="admin-kicker">Bula Basket · Administration</p><h1>Management dashboard</h1><p>System overview and recent order activity.</p></div><a class="admin-action" th:href="@{/admin/users}">Manage accounts</a></div>
+  <section class="admin-metrics" aria-label="Business overview">
+    <article class="admin-metric"><span>Total orders</span><strong th:text="${dashboard.totalOrders}">0</strong></article>
+    <article class="admin-metric"><span>Net successful sales</span><strong th:text="'FJ$ ' + ${#numbers.formatDecimal(dashboard.netSuccessfulSales,1,2)}">FJ$ 0.00</strong><small>Successful payments less simulated refunds</small></article>
+    <article class="admin-metric"><span>Low-stock alerts</span><strong th:text="${dashboard.lowStockAlerts}">0</strong><a th:href="@{/inventory(availability='alerts')}">Review inventory</a></article>
+    <article class="admin-metric"><span>Registered customers</span><strong th:text="${dashboard.registeredCustomers}">0</strong></article>
+    <article class="admin-metric"><span>Pending deliveries</span><strong th:text="${dashboard.pendingDeliveries}">0</strong><a th:href="@{/delivery/manage}">Open delivery management</a></article>
+  </section>
+  <section class="admin-panel"><div class="admin-panel-heading"><h2>Recent orders</h2><a th:href="@{/admin/orders}">View orders and payment records</a></div>
+    <div class="table-responsive"><table class="admin-table"><thead><tr><th>Order</th><th>Customer ID</th><th>Date</th><th>Total</th><th>Status</th></tr></thead>
+      <tbody><tr th:each="order : ${dashboard.recentOrders}"><td th:text="|#${order.id}|">#1</td><td th:text="${order.customerId}">1</td><td th:text="${order.orderDate != null ? #temporals.format(order.orderDate, 'dd MMM yyyy, h:mm a') : '—'}">Date</td><td th:text="'FJ$ ' + ${#numbers.formatDecimal(order.totalAmount,1,2)}">FJ$ 0.00</td><td><span class="admin-status" th:text="${order.status}">PAID</span></td></tr>
+      <tr th:if="${#lists.isEmpty(dashboard.recentOrders)}"><td colspan="5" class="admin-empty">No orders have been placed yet.</td></tr></tbody>
+    </table></div>
+  </section>
+  <section class="admin-shortcuts"><h2>Management</h2><a th:href="@{/inventory}">Products & inventory</a><a th:href="@{/inventory/promotions}">Promotions</a><a th:href="@{/delivery/manage}">Delivery operations</a><a th:href="@{/admin/users}">Users and roles</a></section>
+</main><footer th:replace="~{fragments :: footer}"></footer></body></html>
