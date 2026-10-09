@@ -8,6 +8,11 @@
 <header th:replace="~{fragments :: siteHeader('inventory')}"></header>
 
 <main class="shell">
+  <nav class="module-links" aria-label="Inventory views"><a th:href="@{/inventory}">Inventory</a><a th:href="@{/inventory/promotions}">Promotions</a></nav>
+  <div class="alert alert-warning" th:if="${store != null and alertCount > 0}" role="status">
+    <strong th:text="|${alertCount} products need restocking at ${store.name}.|"></strong>
+    <a th:href="@{/inventory(storeId=${store.id},availability='alerts')}">View low-stock alerts</a>
+  </div>
 
   <div class="inventory-page-head">
     <div>
@@ -80,6 +85,7 @@
             aria-label="Stock level">
 
       <option value="">All stock levels</option>
+      <option value="alerts" th:selected="${availability == 'alerts'}">Needs restocking</option>
 
       <option value="low"
               th:selected="${availability == 'low'}">
@@ -110,6 +116,7 @@
           <th>Product</th>
           <th>Price</th>
           <th>Stock</th>
+          <th>Threshold</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
@@ -157,6 +164,7 @@
           <td class="stock-number"
               th:text="${item.quantity}">
           </td>
+          <td th:text="${item.lowStockThreshold}"></td>
 
 
           <td>
@@ -176,6 +184,7 @@
                th:attr="aria-label=|Edit ${item.product.name}|">
               Edit
             </a>
+            <a class="btn btn-outline btn-small" th:href="@{/inventory/{id}/history(id=${item.product.id},storeId=${store.id})}">Stock history</a>
 
           </td>
 

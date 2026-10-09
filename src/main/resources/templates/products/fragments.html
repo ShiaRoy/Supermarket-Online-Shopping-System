@@ -90,7 +90,7 @@
     <div class="product-visual">
 
       <span class="stock"
-            th:classappend="${item.quantity <= 10} ? 'low'"
+            th:classappend="${item.lowStock} ? 'low'"
             th:text="${item.status}">
         In stock
       </span>
@@ -116,9 +116,10 @@
       </span>
 
       <span class="price"
-            th:text="|FJ$ ${#numbers.formatDecimal(item.product.price,1,2)}|">
+            th:text="|FJ$ ${#numbers.formatDecimal(promotionPrices != null and promotionPrices.containsKey(item.product.id) ? promotionPrices[item.product.id] : item.product.price,1,2)}|">
         Price
       </span>
+      <small th:if="${promotionPrices != null and promotionPrices.containsKey(item.product.id)}">Promotion <del th:text="|FJ$ ${#numbers.formatDecimal(item.product.price,1,2)}|"></del></small>
 
 
       <form sec:authorize="hasRole('CUSTOMER')"

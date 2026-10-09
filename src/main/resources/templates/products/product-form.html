@@ -15,6 +15,8 @@
       <div class="form-group full"><label for="description">Description</label><textarea id="description" th:field="*{description}" required maxlength="2000" rows="4"></textarea></div>
       <div class="form-group"><label for="price">Price (FJ$)</label><input id="price" th:field="*{price}" type="number" min="0.01" max="99999999.99" step="0.01" required></div>
       <div class="form-group"><label for="quantity">Stock quantity</label><input id="quantity" th:field="*{quantity}" type="number" min="0" max="1000000" step="1" required></div>
+      <div class="form-group"><label for="lowStockThreshold">Low-stock threshold</label><input id="lowStockThreshold" th:field="*{lowStockThreshold}" type="number" min="0" max="1000000" required></div>
+      <div class="form-group"><label for="stockReason">Stock change reason</label><input id="stockReason" th:field="*{stockReason}" maxlength="250" required></div>
       <div class="form-group"><label for="icon">Product icon</label><select id="icon" th:field="*{icon}"><option value="basket">Basket</option><option value="milk">Milk</option><option value="bread">Bread</option><option value="chicken">Chicken</option><option value="juice">Juice</option><option value="drink">Drink</option></select></div>
       <label class="check-line"><input type="checkbox" th:field="*{active}">Visible in catalogue</label>
     </div>

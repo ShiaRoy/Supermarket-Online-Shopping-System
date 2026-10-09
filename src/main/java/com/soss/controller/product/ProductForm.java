@@ -19,6 +19,14 @@ public class ProductForm {
     private Long storeId;
     @NotNull @Min(0) @Max(1000000)
     private Integer quantity = 0;
+    @NotNull @Min(0) @Max(1000000)
+    private Integer lowStockThreshold = 10;
+    @NotBlank @Size(max = 250)
+    private String stockReason = "Stock adjustment";
+    public Integer getLowStockThreshold() { return lowStockThreshold; }
+    public void setLowStockThreshold(Integer threshold) { this.lowStockThreshold = threshold; }
+    public String getStockReason() { return stockReason; }
+    public void setStockReason(String stockReason) { this.stockReason = stockReason; }
     private Long productVersion;
     private Long inventoryVersion;
     public String getName() { return name; }

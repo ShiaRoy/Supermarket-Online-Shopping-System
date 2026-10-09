@@ -1,4 +1,10 @@
 body { font-family: 'DM Sans', sans-serif; color: var(--ink); }
+.module-links { display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 24px; }
+.module-links a { color: var(--teal); font-weight: 700; }
+.history-restock { max-width: 720px; margin: 24px 0; }
+.history-table { min-width: 880px; }
+.history-table td { overflow-wrap: anywhere; max-width: 250px; }
+.pagination-links { display: flex; gap: 20px; align-items: center; margin-top: 20px; }
 a { text-decoration: none; }
 .product-body h3 a { color: inherit; }
 .products { align-content: start; }

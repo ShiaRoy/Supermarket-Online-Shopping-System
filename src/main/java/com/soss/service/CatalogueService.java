@@ -17,14 +17,19 @@ public class CatalogueService {
     private final ProductRepository products;
     private final StoreRepository stores;
     private final InventoryRepository inventory;
-    public CatalogueService(ProductRepository products, StoreRepository stores, InventoryRepository inventory) {
+    private final StockMovementRepository movements;
+    public CatalogueService(ProductRepository products, StoreRepository stores, InventoryRepository inventory, StockMovementRepository movements) {
         this.products = products; this.stores = stores; this.inventory = inventory;
+        this.movements = movements;
     }
     public List<Store> stores() { return stores.findAll(); }
     @Transactional
     public Store addStore(String name) {
         Store store = stores.save(new Store(name));
-        for (Product product : products.findAll()) inventory.save(new Inventory(store, product, 0));
+        for (Product product : products.findAll()) {
+            Inventory item = inventory.save(new Inventory(store, product, 0));
+            record(item, 0, "INITIAL", "Store created");
+        }
         return store;
     }
     public Store store(Long id) {
@@ -43,7 +48,8 @@ public class CatalogueService {
             .filter(i -> max == null || i.getProduct().getPrice().compareTo(max) <= 0)
             .filter(i -> switch (availability == null ? "" : availability) {
                 case "in" -> i.getQuantity() > 0;
-                case "low" -> i.getQuantity() > 0 && i.getQuantity() <= 10;
+                case "low" -> i.getQuantity() > 0 && i.isLowStock();
+                case "alerts" -> i.getProduct().isActive() && i.isLowStock();
                 case "out" -> i.getQuantity() == 0;
                 default -> true;
             }).toList();
@@ -65,6 +71,7 @@ public class CatalogueService {
         form.setName(p.getName()); form.setCategory(p.getCategory()); form.setDescription(p.getDescription());
         form.setPrice(p.getPrice()); form.setIcon(p.getIcon()); form.setActive(p.isActive());
         form.setStoreId(storeId); form.setQuantity(item.getQuantity());
+        form.setLowStockThreshold(item.getLowStockThreshold());
         form.setProductVersion(p.getVersion()); form.setInventoryVersion(item.getVersion());
         return form;
     }
@@ -79,7 +86,10 @@ public class CatalogueService {
                 product.getPrice(), product.getIcon(), form.isActive());
             // Every branch gets a stock row; only the selected branch gets the entered quantity.
             for (Store branch : stores.findAll()) {
-                inventory.save(new Inventory(branch, product, branch.getId().equals(selectedStore.getId()) ? form.getQuantity() : 0));
+                Inventory item = new Inventory(branch, product, branch.getId().equals(selectedStore.getId()) ? form.getQuantity() : 0);
+                if (branch.getId().equals(selectedStore.getId())) item.setLowStockThreshold(form.getLowStockThreshold());
+                inventory.save(item);
+                record(item, 0, "INITIAL", "Product created");
             }
         } else {
             Inventory item = detail(id, selectedStore.getId(), true);
@@ -90,7 +100,11 @@ public class CatalogueService {
             }
             product.update(form.getName().strip(), form.getCategory().strip(), form.getDescription().strip(),
                 form.getPrice(), form.getIcon(), form.isActive());
+            int before = item.getQuantity();
             item.setQuantity(form.getQuantity());
+            item.setLowStockThreshold(form.getLowStockThreshold());
+            if (before != item.getQuantity()) record(item, before,
+                item.getQuantity() > before ? "RESTOCK" : "ADJUSTMENT", form.getStockReason().strip());
         }
         return product;
     }
@@ -103,6 +117,29 @@ public class CatalogueService {
         if (!item.getProduct().isActive() || item.getQuantity() < quantity) {
             throw new IllegalArgumentException("Insufficient available stock.");
         }
-        item.setQuantity(item.getQuantity() - quantity);
+        int before = item.getQuantity();
+        item.setQuantity(before - quantity);
+        record(item, before, "SALE", "Checkout stock deduction");
+    }
+    public org.springframework.data.domain.Page<StockMovement> history(Long productId, Long storeId, int page) {
+        detail(productId, storeId, true);
+        return movements.findByProductIdAndStoreIdOrderByOccurredAtDescIdDesc(productId, storeId,
+            org.springframework.data.domain.PageRequest.of(Math.max(0, page), 30));
+    }
+    @Transactional
+    public void restock(Long productId, Long storeId, int amount, String reason) {
+        if (amount <= 0 || amount > 1000000 || reason == null || reason.isBlank() || reason.length() > 250)
+            throw new IllegalArgumentException("Enter a positive amount and a reason of up to 250 characters.");
+        Inventory item = inventory.lockStock(productId, storeId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        int before = item.getQuantity();
+        if ((long) before + amount > 1000000) throw new IllegalArgumentException("Stock cannot exceed 1,000,000 units.");
+        item.setQuantity(before + amount);
+        record(item, before, "RESTOCK", reason.strip());
+    }
+    private void record(Inventory item, int before, String type, String reason) {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String actor = auth != null && auth.isAuthenticated() ? auth.getName() : "system";
+        movements.save(new StockMovement(item, before, type, reason, actor));
     }
 }

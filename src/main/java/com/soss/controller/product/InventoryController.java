@@ -31,6 +31,7 @@ public class InventoryController {
         model.addAttribute("store", store); model.addAttribute("stores", service.stores());
         model.addAttribute("items", service.search(store.getId(), q, category, null, null, availability, true));
         model.addAttribute("categories", service.categories(store.getId(), true));
+        model.addAttribute("alertCount", service.search(store.getId(), "", "", null, null, "alerts", true).size());
         model.addAttribute("q", q); model.addAttribute("category", category); model.addAttribute("availability", availability);
         return "products/inventory";
     }
@@ -50,6 +51,21 @@ public class InventoryController {
         form.setStoreId(service.store(storeId).getId());
         model.addAttribute("productForm", form);
         return prepareForm(null, form, model);
+    }
+    @GetMapping("/{id}/history")
+    String history(@PathVariable Long id, @RequestParam Long storeId, @RequestParam(defaultValue = "0") int page, Model model) {
+        model.addAttribute("item", service.detail(id, storeId, true));
+        model.addAttribute("history", service.history(id, storeId, page));
+        return "products/stock-history";
+    }
+    @PostMapping("/{id}/restock")
+    String restock(@PathVariable Long id, @RequestParam Long storeId, @RequestParam int amount,
+        @RequestParam String reason, RedirectAttributes redirect) {
+        try {
+            service.restock(id, storeId, amount, reason);
+            redirect.addFlashAttribute("message", "Stock received.");
+        } catch (IllegalArgumentException e) { redirect.addFlashAttribute("error", e.getMessage()); }
+        return "redirect:/inventory/" + id + "/history?storeId=" + storeId;
     }
     @GetMapping("/{id}/edit")
     String edit(@PathVariable Long id, @RequestParam(required = false) Long storeId, Model model) {
