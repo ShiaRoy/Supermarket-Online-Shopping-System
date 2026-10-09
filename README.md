@@ -37,6 +37,11 @@ Customers can view their order and payment history, order confirmation, cancel e
 
 Staff/Admin can create deliveries and assign delivery personnel. Staff handle the preparation stage; assigned Delivery users progress their own deliveries. Customers can track their own orders and confirm receipt after delivery, which completes the order. Delivery progress, timestamps, failed attempts and cancellation state are recorded.
 
+## Module documentation
+
+- [Products and Inventory](PRODUCTS-AND-INVENTORY.md)
+- [Cart and Checkout](CART-CHECKOUT.md)
+
 ## User roles
 
 Authorization is enforced by Spring Security on the server as well as reflected in page navigation.
@@ -93,7 +98,7 @@ The database name is `soss_db` and the web server uses port `8080`. Hibernate us
 
 ### Existing database migration and inventory version check
 
-The repository includes the manual, non-destructive MySQL compatibility script [`V2__payment_and_order_status_varchar.sql`](src/main/resources/db/manual/V2__payment_and_order_status_varchar.sql). For an existing database whose `payments.status` or `orders.status` columns are MySQL `ENUM` columns from an earlier version, select `soss_db` in Workbench and run this script before using Phase 2 refunds/cancellations. It changes those status columns to `VARCHAR` and preserves existing rows. The script is manual; Spring Boot does not automatically run it. A fresh schema uses the current JPA mappings, but check the actual schema before assuming an older database is compatible.
+The repository includes the manual, non-destructive MySQL compatibility script [`V2__payment_and_order_status_varchar.sql`](src/main/resources/db/manual/V2__payment_and_order_status_varchar.sql). For an existing database whose `payments.status` or `orders.status` columns are MySQL `ENUM` columns from an earlier version, select `soss_db` in Workbench and run this script before using refund and cancellation features. It changes those status columns to `VARCHAR` and preserves existing rows. The script is manual; Spring Boot does not automatically run it. A fresh schema uses the current JPA mappings, but check the actual schema before assuming an older database is compatible.
 
 `Inventory.version` is a JPA optimistic-lock field. Rows created through the current application receive a version value. If upgrading an older database or importing inventory rows, check for legacy NULL versions after Hibernate has created/updated the column:
 

@@ -1,4 +1,4 @@
-# Phase 2 Cart & Checkout
+# Cart & Checkout
 
 ## Scope
 
