@@ -239,7 +239,8 @@ class CheckoutIntegrationTest {
 
         assertThat(orderService.getOrderById(order.getId()).getStatus()).isEqualTo(OrderStatus.CANCELLED);
         assertThat(catalogue.detail(productId, storeId, true).getQuantity()).isEqualTo(10);
-        assertThat(deliveries.findByOrderId(order.getId())).isEmpty();
+        var cancelledDelivery = deliveries.findByOrderId(order.getId()).orElseThrow();
+        assertThat(cancelledDelivery.getCancelledAt()).isNotNull();
         assertThat(payments.findByOrderId(order.getId()))
                 .extracting(Payment::getStatus)
                 .containsExactlyInAnyOrder(PaymentStatus.SUCCESS, PaymentStatus.REFUNDED);
@@ -261,10 +262,14 @@ class CheckoutIntegrationTest {
 
         assertThatThrownBy(() -> cancellations.cancel(order.getId(), customerId))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("delivery is in progress");
+                .hasMessageContaining("cannot be cancelled");
         assertThat(orderService.getOrderById(order.getId()).getStatus()).isEqualTo(OrderStatus.PAID);
         assertThat(catalogue.detail(productId, storeId, true).getQuantity()).isEqualTo(9);
-        assertThat(payments.findByOrderId(order.getId())).hasSize(1);
+        assertThat(payments.findByOrderId(order.getId()))
+                .extracting(Payment::getStatus)
+                .containsExactly(PaymentStatus.SUCCESS);
+        var unchangedDelivery = deliveries.findByOrderId(order.getId()).orElseThrow();
+        assertThat(unchangedDelivery.getCancelledAt()).isNull();
     }
 
     @Test
