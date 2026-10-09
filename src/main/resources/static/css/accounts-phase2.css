@@ -1,0 +1,10 @@
+.account-actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:18px 0; }
+.account-actions form { margin:0; }
+.account-actions a.btn { text-decoration:none; display:inline-block; }
+.account-entry { border:1px solid var(--line); border-radius:14px; margin:18px 0; padding:20px; overflow-wrap:anywhere; }
+.account-entry h3 { margin-top:0; }
+.account-notice { background:#e5f5ef; color:#155e55; padding:14px; border-radius:12px; }
+.account-badge { display:inline-block; padding:5px 10px; border-radius:20px; background:#e5f5ef; color:#155e55; margin-right:10px; }
+.preserve-lines { white-space:pre-wrap; overflow-wrap:anywhere; }
+.btn:disabled { opacity:.6; cursor:default; }
+.full { grid-column:1/-1; }

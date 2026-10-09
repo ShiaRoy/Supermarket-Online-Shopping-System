@@ -46,6 +46,12 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Phase 2 password reset email -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- Spring Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

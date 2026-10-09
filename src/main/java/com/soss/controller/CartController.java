@@ -2,6 +2,7 @@ package com.soss.controller;
 
 import com.soss.model.CheckoutForm;
 import com.soss.service.CartService;
+import com.soss.service.AccountService;
 
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
@@ -14,9 +15,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.security.Principal;
 
 @Controller
+// Displays cart and checkout pages and processes customer shopping forms.
 public class CartController {
     private final CartService carts;
-    public CartController(CartService carts) { this.carts = carts; }
+    private final AccountService accounts;
+    public CartController(CartService carts, AccountService accounts) { this.carts = carts; this.accounts = accounts; }
 
     private String owner(Principal user) {
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
@@ -46,6 +49,7 @@ public class CartController {
         CheckoutForm form = new CheckoutForm();
         form.setToken(((CartService.Basket)model.getAttribute("basket")).token());
         form.setPaymentMethod("M-PAiSA");
+        form.setAddress(accounts.profile(owner).getDeliveryAddress());
         model.addAttribute("checkout", form);
         return "checkout";
     }

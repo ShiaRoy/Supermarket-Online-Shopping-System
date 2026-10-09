@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+// Defines which pages each role can access and configures login, logout, and session handling.
 public class SecurityConfig {
 
     @Bean
@@ -17,7 +18,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    // Applies role restrictions and configures the authentication and session filters.
+    SecurityFilterChain securityFilterChain(HttpSecurity http, org.springframework.security.core.session.SessionRegistry sessions) throws Exception {
 
         return http
                 .authorizeHttpRequests(auth -> auth
@@ -27,6 +29,8 @@ public class SecurityConfig {
                                 "/",
                                 "/login",
                                 "/register",
+                                "/forgot-password",
+                                "/reset-password",
                                 "/access-denied",
                                 "/products",
                                 "/products/**",
@@ -97,8 +101,13 @@ public class SecurityConfig {
                                 "/payments/**"
                         ).hasRole("CUSTOMER")
 
+                        .requestMatchers("/support/manage", "/support/manage/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers("/support", "/support/**").hasRole("CUSTOMER")
                         .anyRequest().authenticated()
                 )
+
+                .sessionManagement(session -> session.maximumSessions(-1)
+                        .sessionRegistry(sessions).expiredUrl("/login?passwordChanged"))
 
                 .formLogin(form -> form
                         .loginPage("/login")
